@@ -1,0 +1,70 @@
+## embARC application makefile template ##
+### You can copy this file to your application folder
+### and rename it to makefile.
+##
+
+# Application name
+APPL ?= {{APPL}}
+
+# Optimization Level
+# Please Refer to toolchain_xxx.mk for this option
+OLEVEL ?= {{OLEVEL}}
+
+##
+# Current Board And Core
+##
+BOARD ?= {{BOARD}}
+BD_VER ?= {{BD_VER}}
+CUR_CORE ?= {{CUR_CORE}}
+
+##
+# select debugging jtag
+##
+JTAG ?= usb
+
+##
+# Set toolchain
+##
+TOOLCHAIN ?= {{TOOLCHAIN}}
+
+##
+# Uncomment following options
+# if you want to set your own heap and stack size
+# Default settings see options.mk
+##
+#HEAPSZ ?= 8192
+#STACKSZ ?= 8192
+
+##
+# Uncomment following options
+# if you want to add your own library into link process
+# For example:
+# If you want link math lib for gnu toolchain,
+# you need to set the option to -lm
+##
+#APPL_LIBS ?=
+OS_SEL ?= {{OS_SEL}}
+LIB_SEL ?= {{LIB_SEL}}
+#
+# root dir of embARC
+#
+EMBARC_ROOT = {{EMBARC_OSP_ROOT}}
+
+MID_SEL = {{MIDDLEWARE}}
+
+# application source dirs
+APPL_CSRC_DIR = {{APPL_CSRC_DIR}} 
+APPL_ASMSRC_DIR = {{APPL_ASMSRC_DIR}} 
+
+# application include dirs
+APPL_INC_DIR = {{APPL_INC_DIR}} 
+
+# application defines
+APPL_DEFINES = {{APPL_DEFINES}} 
+
+# include current project makefile
+COMMON_COMPILE_PREREQUISITES += makefile
+
+### Options above must be added before include options.mk ###
+# include key embARC build system makefile
+include $(EMBARC_ROOT)/options/options.mk
