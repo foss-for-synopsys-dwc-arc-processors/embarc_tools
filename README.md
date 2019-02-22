@@ -17,7 +17,7 @@ Command-line tool for embARC OSP - https://embarc.org/embarc_osp
 version 0.0.3
 
 Use "embarc <command> -h|--help" for detailed help.
-Online manual and guide available at https://github.com/foss-for-synopsys-dwc-arc-processors/embarc-cli
+Online manual and guide available at https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools
 
 positional arguments:
   {new,build,appconfig,config}

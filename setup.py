@@ -5,9 +5,9 @@ from setuptools import setup, find_packages
 setup(
     name='embarc_cli',
     version='0.0.3',
-    description='This is a tool for Embedded Development with embARC',
-    author='Jingru',
-    author_email='1961295051@qq.com',
+    description='This is a command line tool for embarc open source platform',
+    author='Jingru Wang',
+    author_email='jingru@synopsys.com',
     keywords="embARC",
     url="",
     packages=find_packages(),

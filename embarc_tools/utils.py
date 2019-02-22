@@ -111,7 +111,7 @@ def pquery(command, output_callback=None, stdin=None, **kwargs):
 
     stdout, _ = proc.communicate(stdin)
     if proc.returncode != 0:
-        print("[embARC] Run coammand {} return code:{} ".format(' '.join(command), proc.returncode))
+        print("[embARC] Run command {} return code:{} ".format(' '.join(command), proc.returncode))
 
     return stdout.decode("utf-8")
 

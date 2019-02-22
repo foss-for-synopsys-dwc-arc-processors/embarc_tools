@@ -44,7 +44,7 @@ class Gnu(ARCtoolchain):
         try:
             exe = pquery(cmd)
             if exe is None:
-                msg = "can not execuate {}".format(cmd[0])
+                msg = "can not execute {}".format(cmd[0])
                 print_string(msg, level="warning")
                 return None
             version = re.search(r"[0-9]*\.[0-9]*", exe).group(0)
@@ -146,4 +146,3 @@ class Gnu(ARCtoolchain):
                 print_string(e.reason, level="warning")
         else:
             print_string("Can not get latest veriosn Gnu")
-            

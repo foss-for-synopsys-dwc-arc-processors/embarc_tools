@@ -142,7 +142,7 @@ def generate_json(data, path):
 
 
 def copy_file(src, dst):
-    """ Implement the behaviour of "shutil.copy(src, dst)" without copying the
+    """ Implement the behavior of "shutil.copy(src, dst)" without copying the
     permissions (this was causing errors with directories mounted with samba)
 
     Positional arguments:

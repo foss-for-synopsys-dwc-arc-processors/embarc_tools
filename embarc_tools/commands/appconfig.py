@@ -10,7 +10,7 @@ from ..builder import build
 
 help = "Get or set application config"
 description = ("Show detail config.\n"
-               "Currently supported options: board, board verion, ccurrent core, toolchain, olevel and embarc root.\n"
+               "Currently supported options: board, board version, current core, toolchain, olevel and embarc root.\n"
                "Result is to look for embarc_app.json, default options in makefile will be overridden by it")
 
 

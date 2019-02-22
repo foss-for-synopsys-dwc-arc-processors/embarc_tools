@@ -67,7 +67,7 @@ class Git(object):
             line = re.sub(r'\s+', '', line)
             branches.append(line)
 
-        for branch in branches:  # delete all local branches so the new repo clone is not poluted
+        for branch in branches:  # delete all local branches so the new repo clone is not polluted
             pquery([GIT_CMD, 'branch', '-D', branch])
 
     def clone(url, name=None, depth=None, protocol=None, very_verbose=True, verbose=False):
