@@ -1,26 +1,41 @@
 import os
-
 from setuptools import setup, find_packages
+import unittest
+
+def my_test_suite():
+    test_loader = unittest.TestLoader()
+    test_suite = test_loader.discover('tests', pattern='test_*.py')
+    return test_suite
 
 setup(
     name='embarc_cli',
-    version='0.0.3',
+    version='1.0.2',
     description='This is a command line tool for embarc open source platform',
+    long_description_content_type='text/markdown',
     author='Jingru Wang',
     author_email='jingru@synopsys.com',
     keywords="embARC",
-    url="",
+    url="https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools",
+    download_url='https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools.git',
     packages=find_packages(),
+    test_suite="setup.my_test_suite",
     entry_points={
         'console_scripts': [
             "embarc=embarc_tools.main:main",
         ]
     },
+    python_requires='>=2.7.10,!=3.0.*,!=3.1.*,<4',
+    classifiers=(
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
+        "Operating System :: OS Independent",
+    ),
     install_requires=[
         'PyYAML',
         'colorama',
         'PrettyTable',
-        'Jinja2'
+        'Jinja2',
+        'beautifulsoup4'
     ],
 
     include_package_data = True,

@@ -1,3 +1,4 @@
+[ ![Travis CI Status](https://travis-ci.org/foss-for-synopsys-dwc-arc-processors/embarc_tools.svg?branch=master)](https://travis-ci.org/foss-for-synopsys-dwc-arc-processors/embarc_tools) [![Latest Version](https://img.shields.io/pypi/v/embarc_cli.svg)](https://pypi.org/project/embarc_cli/) [![Supported Python versions](https://img.shields.io/pypi/pyversions/embarc_cli.svg)](https://pypi.org/project/embarc_cli/)
 ## Introduction
 embARC CLI is the name of the embARC command-line tool, packaged as `embarc_tools`. embARC CLI support for embARC application creation, build and config, use of the embARC Open Software Platform.
 
