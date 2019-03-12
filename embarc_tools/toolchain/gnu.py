@@ -128,15 +128,15 @@ class Gnu(ARCtoolchain):
             content = response.read().decode('utf-8')
 
             div_bf = BeautifulSoup(content)
-            items = div_bf.find_all('div', class_ = 'Box Box--condensed mt-3')
+            items = div_bf.find_all('div', class_='Box Box--condensed mt-3')
             latesturl = None
             if items:
                 a_bf = BeautifulSoup(str(items[0]))
-                a_items = a_bf.find_all('a', class_ = 'd-flex flex-items-center')
+                a_items = a_bf.find_all('a', class_='d-flex flex-items-center')
                 for a_item in a_items:
                     a_url = a_item.get('href')
                     if pack_format in a_url:
-                        latesturl = a_url
+                        latesturl = str(a_url)
                         break
                 return latesturl
         except URLError as e:

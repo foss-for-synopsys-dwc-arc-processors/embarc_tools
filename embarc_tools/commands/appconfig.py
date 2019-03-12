@@ -1,10 +1,8 @@
 from __future__ import print_function, division, unicode_literals
 import os
 import sys
-import collections
-from ..settings import SUPPORT_TOOLCHAIN, OLEVEL
-from ..notify import print_string, print_table
-from ..download_manager import getcwd, read_json, generate_json, cd
+from ..notify import print_string
+from ..download_manager import getcwd, read_json, cd
 from ..osp import osp
 from ..builder import build
 

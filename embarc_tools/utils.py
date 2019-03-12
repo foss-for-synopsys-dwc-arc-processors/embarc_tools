@@ -10,7 +10,6 @@ import errno
 import os
 import yaml
 from .download_manager import getcwd
-from .settings import PYTHON_VERSION
 
 
 def uniqify(_list):
