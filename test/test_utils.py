@@ -4,14 +4,13 @@ from embarc_tools.osp import osp
 import unittest
 import os
 
+
 class TestUtils(unittest.TestCase):
 
     def setUp(self):
         pass
 
-
     def test_flatten(self):
-
         l1 = [['aa', 'bb', ['cc', 'dd', 'ee'], ['ee', 'ff'], 'gg']]
         assert list(flatten(l1)) == ['aa', 'bb', 'cc', 'dd', 'ee', 'ee', 'ff', 'gg']
         assert uniqify(flatten(l1)) == ['aa', 'bb', 'cc', 'dd', 'ee', 'ff', 'gg']
@@ -19,7 +18,6 @@ class TestUtils(unittest.TestCase):
     def test_uniqify(self):
         l1 = ['a', 'b', 'b', 'c', 'b', 'd', 'c', 'e', 'f', 'a']
         assert uniqify(l1) == ['a', 'b', 'c', 'd', 'e', 'f']
-
 
     def test_load_yaml_records(self):
         ospclass = osp.OSP()
@@ -37,15 +35,14 @@ class TestUtils(unittest.TestCase):
         print(output)
 
     def test_popen(self):
-        command = ["embarc","--version"]
+        command = ["python", "-V"]
         self.assertIsNone(popen(command))
 
     def test_pquery(self):
-        command = ["embarc","--version"]
+        command = ["python", "-V"]
         output = pquery(command)
         print(output)
         # self.assertEqual(output, ".0.0.1")
-
 
     def tearDown(self):
         pass

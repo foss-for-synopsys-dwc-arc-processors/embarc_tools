@@ -1,51 +1,62 @@
 from __future__ import print_function, division
 from embarc_tools.builder import build
 from embarc_tools.osp import osp, repo
+from embarc_tools.utils import popen
+from embarc_tools.download_manager import getcwd, read_json
+from embarc_tools.settings import EMBARC_OSP_URL, CURRENT_PLATFORM
+from embarc_tools.notify import print_string
+from embarc_tools.project import Generator
 import unittest
-import os, shutil
+import os
+import shutil
+
 
 class TestBuilder(unittest.TestCase):
     def setUp(self):
         super(TestBuilder, self).setUp()
         ospclass = osp.OSP()
         ospclass.list_path()
+        if ospclass.get_path(str("new_osp")):
+            config = "EMBARC_OSP_ROOT"
+            ospclass.set_global(config, str("new_osp"))
         self.osp_root = ospclass.get_path("new_osp")
-        if not self.osp_root:
-            url = "https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp"
-            osprepo = repo.Repo.fromurl(url)
-            path = os.getcwd()
-            if not os.path.exists(osprepo.name):
-                osprepo.clone(osprepo.url, path=os.path.join(path, osprepo.name), rev=None, depth=None, protocol=None, offline=False)
-                ospclass.set_path(os.path.join(path, osprepo.name), osprepo.url)
-            self.osp_root = os.path.join(path, osprepo.name)
         self.app_path = os.path.join(self.osp_root, "example/baremetal/blinky")
-        self.buildopts = {"BOARD":"emsk", "BD_VER":"11","CUR_CORE":"arcem6","TOOLCHAIN":"gnu"}
+        self.buildopts = {"BOARD": "emsk", "BD_VER": "11", "CUR_CORE": "arcem6", "TOOLCHAIN": "gnu"}
         self.app_builder = build.embARC_Builder(osproot=self.osp_root, buildopts=self.buildopts)
 
     def test_build_common_check(self):
         app_path = self.app_path
         app_realpath, build_status = self.app_builder.build_common_check(app_path)
-        print(build_status )
+        print(build_status)
         self.assertTrue(build_status["result"])
 
     def test_build_target(self):
-        app_path = self.app_path
-        build_status = self.app_builder.build_target(app_path, target='size')
-        self.app_builder.clean(app_path)
+        build_status = self.app_builder.build_target(self.app_path, target='size')
+        embarc_config = os.path.join(self.app_path, "embarc_app.json")
+        if CURRENT_PLATFORM == "Windows":
+            self.app_builder.get_build_cmd(self.app_path, target=None, parallel=parallel, silent=False)
+            with cd(app_path):
+                generator = Generator()
+                recordBuildConfig = read_json(embarc_config)
+                for project in generator.generate(buildopts=recordBuildConfig):
+                    project.generate()
 
+            self.assertTrue(os.path.exists(os.path.join(self.app_path, file1)))
+            self.assertTrue(os.path.exists(os.path.join(self.app_path,file2)))
+        self.app_builder.clean(self.app_path)
 
     def test_get_build_info(self):
         app_path = self.app_path
+        embarc_config = os.path.join(app_path, "embarc_app.json")
         print(self.app_builder.get_build_info(app_path))
+        recordBuildConfig = read_json(embarc_config)
+        print(recordBuildConfig)
         self.app_builder.clean(app_path)
 
     def test_build_elf(self):
         app_path = self.app_path
         build_status = self.app_builder.build_elf(app_path, pre_clean=False, post_clean=False)
-        print(build_status['build_cmd'])
-        print(build_status['time_cost'])
-        print(build_status['build_msg'])
-
+        print(build_status)
         self.app_builder.distclean(self.app_path)
 
     def test_build_bin_hex(self):
@@ -62,18 +73,7 @@ class TestBuilder(unittest.TestCase):
         app_path = self.app_path
         build_status = self.app_builder.get_build_size(app_path)
         print(build_status)
-
         self.app_builder.distclean(self.app_path)
-
-
-
-    '''def test_build_target_coverity(self):
-        app_path = "C:\\Users\\jingru\\Documents\\embarc_tool\\embarc_tool\\test\\testapp"
-        build_status = self.app_builder.build_target(app_path,target='all',coverity=True)
-        self.app_builder.build_coverity_result()
-        self.assertTrue(build_status["result"])
-        app_builder.distclean(self.app_path)'''
-
 
     def tearDown(self):
         print("test builder")

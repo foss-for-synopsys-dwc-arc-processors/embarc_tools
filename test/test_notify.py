@@ -3,6 +3,7 @@ from embarc_tools.notify import *
 import unittest
 import os
 
+
 class TestNotify(unittest.TestCase):
 
     def setUp(self):
@@ -14,7 +15,7 @@ class TestNotify(unittest.TestCase):
 
     def test_print_table(self):
         msg_head = ["title", "config"]
-        msg_content = [["BOARD","emsk"],["BD_VER","11 22 23"]]
+        msg_content = [["BOARD", "emsk"], ["BD_VER", "11 22 23"]]
         msg = [msg_head, msg_content]
         print_table(msg, level=None)
 
