@@ -398,27 +398,21 @@ class OSP(object):
             msg = "Current EMBARC_ROOT is not a valid osp root"
             level = "warning"
             print_string(msg, level)
-            self.list_path()
+            self.list_path(show=True, current=None)
             while True:
                 input_root = get_input("Choose osp root or set another path as osp root: ")
-                osp_root = self.is_osp(input_root)
+                if not self.is_osp(input_root):
+                    input_root = self.get_path(input_root)
 
-                if not osp_root:
+                if not self.is_osp(input_root):
                     msg = "What you choose is not a valid osp root"
                     level = "warning"
                     print_string(msg, level)
-                    osp_root = self.get_path()
-                    if osp_root:
-                        print_string("Here choose " + osp_root + " as osp root")
-                        break
-                    else:
-                        self.clear_path()
-                        print_string("Please set a valid osp root or download embarc osp first")
-                        continue
+                    print_string("Please set a valid osp root or download embarc osp first")
+                    continue
 
                 break
-            osp_root = osp_root.replace("\\", "/")
-            self.set_path(osp_root)
+            osp_root = input_root.replace("\\", "/")
         return osp_root, update
 
     def get_makefile_config(self, build_template=None, verbose=False):
