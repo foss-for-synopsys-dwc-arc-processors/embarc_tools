@@ -9,25 +9,17 @@ python:
 - '3.6'
 - '3.5'
 - '3.4'
+- '3.7'
 - pypy
+
 sudo: required
 dist: trusty
 
 install:
-- sudo apt-get update
-- sudo apt-get install lib32z1
-- sudo apt-get install dos2unix
-- pip install coverage
-- pip install pycodestyle
-- pip install pyflakes
-- pip install PyYAML
-- pip install colorama
-- pip install PrettyTable
-- pip install Jinja2
-- pip install beautifulsoup4
+- pip install tox
 
 script:
-- bash .ci/script.sh
+- tox # bash .ci/script.sh
 
 deploy:
   provider: pypi
