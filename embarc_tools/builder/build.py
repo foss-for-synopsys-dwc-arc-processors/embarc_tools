@@ -447,7 +447,7 @@ class embARC_Builder(object):
 
         if not all(build_template.values()):
             try:
-                returncode, cmd_output = pqueryTemporaryFile(["make", "info"])
+                returncode, cmd_output = pqueryTemporaryFile(["make", "EMBARC_ROOT=" + str(osp_root), "info"])
                 default_build_option = None
                 if not returncode and cmd_output:
                     for line in cmd_output:

@@ -1,0 +1,33 @@
+language: python
+cache:
+  pip: true
+  directories:
+  - ".cache/result"
+  - ".cache/toolchain"
+python:
+- '2.7'
+- '3.6'
+- '3.5'
+- '3.4'
+- '3.7'
+- pypy
+
+sudo: required
+dist: trusty
+
+install:
+- pip install tox
+
+script:
+- tox # bash .ci/script.sh
+
+deploy:
+  provider: pypi
+  user: wangnuan
+  password:
+    secure: F+CqzXFwCRskfnCeMbAKVvKK+pc7/xpSMIfAFgO7zUfFGrfuW20FeB6E+vqjYYigrwxlUDUI9jMjFOJyKIbdbWN9uLEWTxqXMQ1oItrVOJMYAfS2seVRMrJEdm/gTt3gb0kMFBXM/WebjX5HTuYSNFxk57Tpww+cwgthsi5siAqGC3Gw7H82LhyZUvOC84SgUpCJDCgPL2TLdMrxThUWk0mCbUSlyTL/vcIIO2o+glAAtYwmbREiA+BhVLAItpyvllhK80N+ZbC1+PBPGLP+lT44DyATshtDKB3BvDng+qRtgZa+CUpMIya1WNAtxzOTLqqeshU/8/gWv76sXhIudlhEqY0XvXK8oNQBXTmN75UqqXpgzKIVqxznACXK08FFFTyuo6d12topZ8BjDPqUT7NM9ok9EORiyDVo5aXjLeq9LUe1gwSljD9a5Ao3idpZcHrNL8UCP44M1X++wKHXSFkDNRhdXYz0ZA7EtdvGkfvcoFI4TwGCx2cg+GH54OE17WWFVc4HXvZZDshUUc1a+T8ydZ5xBhXausDZELasVkPF8eNtLt0Qi5HOOP2dfICZ+4YgfR+u1jPpFn8AkO2rhoQ5mQfoOQeQV8Pz4PSYunOQ6njkhDPxsphx8MJuMLQl7/By1VI6TQDcVh2cFx5jW+MGF88rhKEDbUHepgFErXo=
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
+    repo: foss-for-synopsys-dwc-arc-processors/embarc_tools
+    python: 2.7
