@@ -3,11 +3,13 @@ import sys
 import os
 import time
 import collections
+import tempfile
 from ..settings import BUILD_CONFIG_TEMPLATE, BUILD_OPTION_NAMES, BUILD_INFO_NAMES, BUILD_CFG_NAMES, BUILD_SIZE_SECTION_NAMES, get_config, MAKEFILENAMES
 from ..utils import pqueryOutputinline, pqueryTemporaryFile
 from ..notify import (print_string, print_table)
 from ..download_manager import mkdir, delete_dir_files, cd, generate_json
 from ..osp import osp
+from ..builder import secureshield
 
 
 class embARC_Builder(object):
@@ -214,43 +216,50 @@ class embARC_Builder(object):
         current_build_cmd = self.get_build_cmd(app_realpath, target, parallel, silent)
         build_status.update(current_build_cmd)
         build_cmd = build_status.get('build_cmd', None)
-
-        print_string("Start to build application")
-        return_code = 0
-        time_pre = time.time()
-        if coverity:
-            with cd(app_realpath):
-                self._setCoverityDirs(app)
-                coverity_build_status = self.build_coverity(build_cmd)
-                if not coverity_build_status["result"]:
-                    build_status["result"] = False
-                    build_status["reason"] = coverity_build_status["reason"]
-                    build_status["build_msg"] = coverity_build_status["build_msg"]
-                else:
-                    build_status["build_msg"] = ["Build Coverity successfully"]
-        else:
-            if target not in ["opt", "info", "size", "all"]:
+        with tempfile.TemporaryDirectory(dir=app_realpath) as secureshield_dir:
+            use_secureshield = secureshield.secureshield_appl_cfg_gen(self.buildopts["TOOLCHAIN"], secureshield_dir)
+            if use_secureshield:
+                build_cmd_list = build_cmd.split()
+                target = build_cmd_list[-1]
+                build_cmd_list[-1] = "USE_SECURESHIELD_APPL_GEN=1"
+                build_cmd_list.append(target)
+                build_cmd = " ".join(build_cmd_list)
+            print_string("Start to build application")
+            return_code = 0
+            time_pre = time.time()
+            if coverity:
                 with cd(app_realpath):
-                    try:
-                        return_code = os.system(build_cmd)
-                        if return_code == 0:
-                            build_status["build_msg"] = ["Build successfully"]
-                        else:
-                            build_status["build_msg"] = ["Build failed"]
-                            build_status['result'] = False
-                            build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
-                    except (KeyboardInterrupt):
-                        print_string("Terminate batch job", "warning")
-                        sys.exit(1)
+                    self._setCoverityDirs(app)
+                    coverity_build_status = self.build_coverity(build_cmd)
+                    if not coverity_build_status["result"]:
+                        build_status["result"] = False
+                        build_status["reason"] = coverity_build_status["reason"]
+                        build_status["build_msg"] = coverity_build_status["build_msg"]
+                    else:
+                        build_status["build_msg"] = ["Build Coverity successfully"]
             else:
-                try:
-                    build_proc = pqueryOutputinline(build_cmd, cwd=app, console=True)
-                    build_status['build_msg'] = build_proc
-                except Exception as e:
-                    print("Run command({}) failed! {} ".format(build_cmd, e))
-                    build_status["build_msg"] = ["Build failed"]
-                    build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
-                    build_status['result'] = False
+                if target not in ["opt", "info", "size", "all"]:
+                    with cd(app_realpath):
+                        try:
+                            return_code = os.system(build_cmd)
+                            if return_code == 0:
+                                build_status["build_msg"] = ["Build successfully"]
+                            else:
+                                build_status["build_msg"] = ["Build failed"]
+                                build_status['result'] = False
+                                build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
+                        except (KeyboardInterrupt):
+                            print_string("Terminate batch job", "warning")
+                            sys.exit(1)
+                else:
+                    try:
+                        build_proc = pqueryOutputinline(build_cmd, cwd=app, console=True)
+                        build_status['build_msg'] = build_proc
+                    except Exception as e:
+                        print("Run command({}) failed! {} ".format(build_cmd, e))
+                        build_status["build_msg"] = ["Build failed"]
+                        build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
+                        build_status['result'] = False
         build_status['time_cost'] = (time.time() - time_pre)
         print_string("Completed in: ({})s  ".format(build_status['time_cost']))
         return build_status
