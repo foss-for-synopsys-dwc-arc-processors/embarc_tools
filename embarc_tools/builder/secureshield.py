@@ -1,7 +1,8 @@
 from __future__ import print_function, unicode_literals
 import os
 from datetime import datetime as dt
-from ..download_manager import cd, getcwd, read_json
+import contextlib
+from ..download_manager import delete_dir_files, read_json
 from ..exporter import Exporter
 from ..notify import print_string
 
@@ -70,21 +71,24 @@ def cal_link_section(config):
 	if len(normal_rom_section):
 		config['normal_rom_section'] = normal_rom_section
 
-
-def secureshield_appl_cfg_gen(toolchain=None, root=None):
+def common_check(toolchain, app_path):
 	config = None
 	if toolchain != 'gnu' and toolchain != 'mw':
 		print_string("please set a valid toolchain")
 		sys.exit(1)
-	if os.path.exists(CONFIG_PATH):
-		config = read_json(CONFIG_PATH)
+	sec_config_path = os.path.join(app_path, CONFIG_PATH)
+	if os.path.exists(sec_config_path):
+		config = read_json(sec_config_path)
 	if config == None:
 		return False
 	elif check_config(config) == False:
 		print_string("please check the application config")
 		print_string("exit application configuration generator")
 		return False
+	return config
 
+@contextlib.contextmanager
+def secureshield_appl_cfg_gen(toolchain, config=dict(), root=None):
 	config['build_year'] = str(dt.now().year)
 	cal_link_section(config)
 	exporter = Exporter("secureshield")
@@ -96,4 +100,10 @@ def secureshield_appl_cfg_gen(toolchain=None, root=None):
 	else:
 		exporter.gen_file_jinja("secureshield_normal_gnu.ld.tmpl", config, LINKER_NORMAL_PATH, root)
 		exporter.gen_file_jinja("secureshield_secure_gnu.ld.tmpl", config, LINKER_SECURE_PATH, root)
-	return True
+	try:
+		yield
+	finally:
+		delete_dir_files(os.path.join(root, CONTAIN_CONFIG_PATH))
+		delete_dir_files(os.path.join(root, SECURESHIELD_APPL_CONFIG_PATH))
+		delete_dir_files(os.path.join(root, LINKER_NORMAL_PATH))
+		delete_dir_files(os.path.join(root, LINKER_SECURE_PATH))

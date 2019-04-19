@@ -216,14 +216,8 @@ class embARC_Builder(object):
         current_build_cmd = self.get_build_cmd(app_realpath, target, parallel, silent)
         build_status.update(current_build_cmd)
         build_cmd = build_status.get('build_cmd', None)
-        with tempfile.TemporaryDirectory(dir=app_realpath) as secureshield_dir:
-            use_secureshield = secureshield.secureshield_appl_cfg_gen(self.buildopts["TOOLCHAIN"], secureshield_dir)
-            if use_secureshield:
-                build_cmd_list = build_cmd.split()
-                target = build_cmd_list[-1]
-                build_cmd_list[-1] = "USE_SECURESHIELD_APPL_GEN=1"
-                build_cmd_list.append(target)
-                build_cmd = " ".join(build_cmd_list)
+
+        def start_build(build_cmd, build_status=None):
             print_string("Start to build application")
             return_code = 0
             time_pre = time.time()
@@ -260,7 +254,22 @@ class embARC_Builder(object):
                         build_status["build_msg"] = ["Build failed"]
                         build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
                         build_status['result'] = False
-        build_status['time_cost'] = (time.time() - time_pre)
+            build_status['time_cost'] = (time.time() - time_pre)
+            return build_status
+
+
+        secureshield_config = secureshield.common_check(self.buildopts["TOOLCHAIN"], app_realpath)
+        if secureshield_config:
+            with secureshield.secureshield_appl_cfg_gen(self.buildopts["TOOLCHAIN"], secureshield_config, app_realpath):
+                build_cmd_list = build_cmd.split()
+                target = build_cmd_list[-1]
+                build_cmd_list[-1] = "USE_SECURESHIELD_APPL_GEN=1"
+                build_cmd_list.append(target)
+                build_cmd = " ".join(build_cmd_list)
+                build_status = start_build(build_cmd, build_status)
+        else:
+            build_status = start_build(build_cmd, build_status)
+        
         print_string("Completed in: ({})s  ".format(build_status['time_cost']))
         return build_status
 
