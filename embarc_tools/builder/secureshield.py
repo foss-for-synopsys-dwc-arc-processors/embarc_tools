@@ -18,11 +18,11 @@ def check_config(config):
 	flag = False
 
 	for item in config['containers']:
-		if item['is_background_container'] == True:
+		if item['is_background_container']==True and item['is_secure']==False:
 			flag = True
 			break
 
-	if config['secureshield_version'] == 1 or config['secureshield_version'] == 2:
+	if config['secureshield_version']==1 or config['secureshield_version']==2:
 		flag &= True
 	else:
 		flag &= False

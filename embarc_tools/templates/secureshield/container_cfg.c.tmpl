@@ -47,9 +47,9 @@ extern uint8_t _f_data_{{item.region_name}}[];
 static CONTAINER_AC_TABLE g_{{item.container_name}}_act[] = {
 	{%- for ac in item.ac_list %}
 		{%- if ac.ac == "shared_memory" %}
-	{(void *)_f_data_{{ac.para1}}, {{ac.para2}}, SECURESHIELD_ACDEF_URAM + SECURESHIELD_AC_SHARED},
+	{(void *)(_f_data_{{ac.para1}}), {{ac.para2}}, SECURESHIELD_ACDEF_URAM | SECURESHIELD_AC_SHARED},
 		{%- else %}
-	{(void *){{ac.para1}}, {{ac.para2}}, {{ac.ac}}},
+	{(void *)({{ac.para1}}), {{ac.para2}}, {{ac.ac}}},
 		{%- endif %}
 	{%- endfor %}
 };
@@ -62,6 +62,6 @@ SECURESHIELD_CONTAINER_CONFIG({{item.container_name}}, g_{{item.container_name}}
 {%- if item.is_secure -%}
 , SECURESHIELD_CONTAINER_SECURE
 {%- endif -%}
-)
+);
 {% endif %}
 {%- endfor %}
