@@ -13,9 +13,8 @@ import os
 from bs4 import BeautifulSoup
 from distutils.spawn import find_executable
 from ..toolchain import ARCtoolchain, ProcessException
-from ..utils import pquery
+from ..utils import download_file, extract_file, getcwd, mkdir, delete_dir_files, pquery
 from ..notify import print_string
-from .. download_manager import (download_file, extract_file, getcwd, mkdir, delete_dir_files)
 
 
 class Gnu(ARCtoolchain):

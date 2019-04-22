@@ -5,9 +5,8 @@ import time
 import collections
 import tempfile
 from ..settings import BUILD_CONFIG_TEMPLATE, BUILD_OPTION_NAMES, BUILD_INFO_NAMES, BUILD_CFG_NAMES, BUILD_SIZE_SECTION_NAMES, get_config, MAKEFILENAMES
-from ..utils import pqueryOutputinline, pqueryTemporaryFile
+from ..utils import mkdir, delete_dir_files, cd, generate_json, pqueryOutputinline, pqueryTemporaryFile
 from ..notify import (print_string, print_table)
-from ..download_manager import mkdir, delete_dir_files, cd, generate_json
 from ..osp import osp
 from ..builder import secureshield
 

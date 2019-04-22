@@ -6,7 +6,7 @@ from ..settings import get_input, SUPPORT_TOOLCHAIN, BUILD_CONFIG_TEMPLATE
 from ..notify import (print_string, print_table)
 from ..exporter import Exporter
 from ..osp import osp
-from ..download_manager import mkdir, getcwd, generate_json
+from ..utils import mkdir, getcwd, generate_json
 
 help = "Create a new application"
 description = ("Options can be input by command line parameter \n"

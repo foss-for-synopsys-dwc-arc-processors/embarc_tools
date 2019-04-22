@@ -1,11 +1,10 @@
 from __future__ import print_function, unicode_literals
 import os
 import random
-from .utils import merge_recursive, uniqify, pquery
+from .utils import cd, getcwd, merge_recursive, uniqify, pquery
 from .exporter import Exporter
 from .osp import osp
 from .notify import (print_string)
-from .download_manager import cd, getcwd
 from .toolchain import gnu
 from .settings import BUILD_CONFIG_TEMPLATE, PYTHON_VERSION
 

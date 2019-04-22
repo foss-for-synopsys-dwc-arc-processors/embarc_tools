@@ -3,6 +3,7 @@ import re
 import sys
 from prettytable import PrettyTable
 from colorama import init, Fore, Back, Style
+
 COLOR = False
 CLI_COLOR_MAP = {
     "info": "white",

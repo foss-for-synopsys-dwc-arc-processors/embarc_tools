@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals
 import os
 from datetime import datetime as dt
 import contextlib
-from ..download_manager import delete_dir_files, read_json
+from ..utils import delete_dir_files, read_json
 from ..exporter import Exporter
 from ..notify import print_string
 
