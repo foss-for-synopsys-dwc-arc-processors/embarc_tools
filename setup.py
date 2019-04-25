@@ -9,7 +9,7 @@ def my_test_suite():
 
 setup(
     name='embarc_cli',
-    version='1.0.2',
+    version='1.0.3',
     description='This is a command line tool for embarc open source platform',
     long_description_content_type='text/markdown',
     author='Jingru Wang',
