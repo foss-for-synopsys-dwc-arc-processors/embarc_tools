@@ -8,7 +8,7 @@ import operator
 import subprocess
 import errno
 import os
-from os import listdir, remove, makedirs, exists
+from os import listdir, remove, makedirs
 import yaml
 import stat
 import urllib
@@ -236,6 +236,8 @@ def show_progress(title, percent, max_width=80):
 def hide_progress(max_width=80):
     if sys.stdout.isatty():
         sys.stdout.write("\r%s\r" % (' ' * max_width))
+
+
 def uniqify(_list):
     return reduce(lambda r, v: v in r[1] and r or (r[0].append(v) or r[1].add(v)) or r, _list, ([], set()))[0]
 
@@ -377,7 +379,7 @@ def pqueryOutputinline(command, console=False, **kwargs):
     except Exception as e:
         print(e)
     proc.wait()
-    if exists(file_name):
+    if os.path.exists(file_name):
         remove(file_name)
     if proc.stdout:
         proc.stdout.close()
@@ -407,7 +409,7 @@ def pqueryTemporaryFile(command):
 
     except Exception as e:
         print("[embARC] Run command {} failed : {}".format(current_command, e))
-    if exists(file_name):
+    if os.path.exists(file_name):
         with open(file_name) as f:
             rt_list = f.read().splitlines()
         remove(file_name)

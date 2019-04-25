@@ -3,7 +3,6 @@ import sys
 import os
 import time
 import collections
-import tempfile
 from ..settings import BUILD_CONFIG_TEMPLATE, BUILD_OPTION_NAMES, BUILD_INFO_NAMES, BUILD_CFG_NAMES, BUILD_SIZE_SECTION_NAMES, get_config, MAKEFILENAMES
 from ..utils import mkdir, delete_dir_files, cd, generate_json, pqueryOutputinline, pqueryTemporaryFile
 from ..notify import (print_string, print_table)
@@ -256,7 +255,6 @@ class embARC_Builder(object):
             build_status['time_cost'] = (time.time() - time_pre)
             return build_status
 
-
         secureshield_config = secureshield.common_check(self.buildopts["TOOLCHAIN"], app_realpath)
         if secureshield_config:
             with secureshield.secureshield_appl_cfg_gen(self.buildopts["TOOLCHAIN"], secureshield_config, app_realpath):
@@ -268,7 +266,6 @@ class embARC_Builder(object):
                 build_status = start_build(build_cmd, build_status)
         else:
             build_status = start_build(build_cmd, build_status)
-        
         print_string("Completed in: ({})s  ".format(build_status['time_cost']))
         return build_status
 
