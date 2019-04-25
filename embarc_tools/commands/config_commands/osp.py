@@ -3,7 +3,7 @@ import os
 from ...notify import print_string
 from ...settings import EMBARC_OSP_URL
 from ...osp import repo, osp
-from ...download_manager import getcwd, read_json, unzip
+from ...utils import getcwd, read_json, unzip
 
 help = "Get, set or unset osp configuration."
 

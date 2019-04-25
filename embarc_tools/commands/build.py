@@ -4,7 +4,7 @@ import sys
 from ..project import Generator
 from ..settings import get_input, get_config
 from ..builder import build
-from ..download_manager import cd, getcwd, read_json
+from ..utils import cd, getcwd, read_json
 help = "Build application"
 description = ("Compile code using toolchain\n"
                "Currently supported Toolchain: GNU, MetaWare.")

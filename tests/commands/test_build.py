@@ -3,7 +3,7 @@ import os
 import pytest
 import subprocess
 from .conftest import runcmd
-from embarc_tools.download_manager import cd, getcwd
+from embarc_tools.utils import cd, getcwd
 
 
 def test_build_commands(tmpdir, get_osp):

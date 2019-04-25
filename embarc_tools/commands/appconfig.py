@@ -2,7 +2,7 @@ from __future__ import print_function, division, unicode_literals
 import os
 import sys
 from ..notify import print_string
-from ..download_manager import getcwd, read_json, cd
+from ..utils import getcwd, read_json, cd
 from ..osp import osp
 from ..builder import build
 

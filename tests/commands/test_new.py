@@ -1,7 +1,7 @@
 from __future__ import print_function, division
 import pytest
 from .conftest import runcmd
-from embarc_tools.download_manager import cd
+from embarc_tools.utils import cd
 
 def test_new_commands(tmpdir, get_osp):
 	testdir = tmpdir.mkdir("test")

@@ -5,7 +5,7 @@ import errno
 import pytest
 from embarc_tools.settings import EMBARC_OSP_URL, CURRENT_PLATFORM
 from embarc_tools.osp import osp
-from embarc_tools.download_manager import getcwd, mkdir
+from embarc_tools.utils import getcwd, mkdir
 from embarc_tools.toolchain import gnu
 
 class ProcessException(Exception):

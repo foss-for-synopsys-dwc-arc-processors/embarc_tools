@@ -4,8 +4,7 @@ import sys
 from ..notify import (print_string, colorstring_to_escapecode)
 from ..settings import MAKEFILENAMES, get_input, OSP_DIRS
 from ..exporter import Exporter
-from ..utils import pquery
-from ..download_manager import cd, read_json, generate_json
+from ..utils import cd, read_json, generate_json, pquery
 
 
 class OSP(object):

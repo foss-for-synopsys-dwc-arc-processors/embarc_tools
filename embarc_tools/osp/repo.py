@@ -13,7 +13,7 @@ import re
 import shutil
 from ..osp import (formaturl, REGEX_LOCAL_REF, REGEX_URL_REF, SCMS, ProcessException)
 from ..notify import print_string
-from ..download_manager import (getcwd, cd, rmtree_readonly, cwd_root, relpath)
+from ..utils import (getcwd, cd, rmtree_readonly, cwd_root, relpath)
 
 
 class Repo(object):
