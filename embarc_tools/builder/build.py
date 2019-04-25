@@ -192,6 +192,7 @@ class embARC_Builder(object):
         for i in range(len(build_cmd_list)):
             if build_cmd_list[i].startswith("EMBARC_ROOT"):
                 build_cmd_list[i] = "EMBARC_ROOT=" + self.osproot
+                break
         build_cmd = " ".join(build_cmd_list)
         print_string("Build command: {} ".format(build_cmd))
         build_status['build_cmd'] = build_cmd
