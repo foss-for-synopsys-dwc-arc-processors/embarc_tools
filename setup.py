@@ -35,7 +35,8 @@ setup(
         'colorama',
         'PrettyTable',
         'Jinja2',
-        'beautifulsoup4'
+        'beautifulsoup4',
+        'GitPython'
     ],
 
     include_package_data = True,
