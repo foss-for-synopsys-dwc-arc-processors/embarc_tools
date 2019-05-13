@@ -4,7 +4,7 @@ from ...notify import print_string
 from ...settings import EMBARC_OSP_URL
 from ...osp import osp
 from ...utils import getcwd, read_json, unzip
-from git import Repo
+import git
 from git.util import RemoteProgress
 
 
