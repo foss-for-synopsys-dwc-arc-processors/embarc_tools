@@ -71,8 +71,9 @@ def cal_link_section(config):
         config['normal_rom_section'] = normal_rom_section
 
 
-def common_check(toolchain, app_path):
+def common_check(toolchain, board, app_path):
     config = None
+    board_config= None
     if toolchain != 'gnu' and toolchain != 'mw':
         print_string("please set a valid toolchain")
         sys.exit(1)
@@ -81,11 +82,16 @@ def common_check(toolchain, app_path):
         config = read_json(sec_config_path)
     if config is None:
         return False
-    elif check_config(config) is False:
+    for item in config:
+        if item['board'] == board:
+            board_config = item
+    if board_config is None:
+        return False
+    elif check_config(board_config) is False:
         print_string("please check the application config")
         print_string("exit application configuration generator")
         return False
-    return config
+    return board_config
 
 
 @contextlib.contextmanager

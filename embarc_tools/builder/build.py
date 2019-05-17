@@ -256,7 +256,8 @@ class embARC_Builder(object):
             build_status['time_cost'] = (time.time() - time_pre)
             return build_status
 
-        secureshield_config = secureshield.common_check(self.buildopts["TOOLCHAIN"], app_realpath)
+        secureshield_config = secureshield.common_check(
+            self.buildopts["TOOLCHAIN"], self.buildopts["BOARD"], app_realpath)
         if secureshield_config:
             with secureshield.secureshield_appl_cfg_gen(self.buildopts["TOOLCHAIN"], secureshield_config, app_realpath):
                 build_cmd_list = build_cmd.split()
