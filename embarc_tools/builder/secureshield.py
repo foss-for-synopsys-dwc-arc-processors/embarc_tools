@@ -73,7 +73,7 @@ def cal_link_section(config):
 
 def common_check(toolchain, board, app_path):
     config = None
-    board_config= None
+    board_config = None
     if toolchain != 'gnu' and toolchain != 'mw':
         print_string("please set a valid toolchain")
         sys.exit(1)
