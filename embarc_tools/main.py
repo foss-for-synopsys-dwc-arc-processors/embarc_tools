@@ -1,11 +1,15 @@
 from __future__ import print_function, unicode_literals
 import argparse
-import sys
 import pkgutil
 import importlib
-import pkg_resources
+'''
+import os
+import sys
+sys.path.insert(0, os.path.abspath("embarc_tools"))
+'''
 from embarc_tools import commands
 from embarc_tools.commands import config_commands
+from embarc_tools.version import __version__
 
 
 def import_submodules(package, recursive=True):
@@ -27,7 +31,7 @@ def import_submodules(package, recursive=True):
 
 SUBCOMMANDS = import_submodules(commands, recursive=False)
 CONFIG_SUBCOMMANDS = import_submodules(config_commands)
-ver = pkg_resources.require("embarc_cli")[0].version
+ver = __version__
 
 
 def main():
@@ -38,7 +42,7 @@ def main():
     )
     parser.add_argument(
         "--version", action='version',
-        version=pkg_resources.require("embarc_cli")[0].version,
+        version=__version__,
         help="Display version"
     )
     subparsers = parser.add_subparsers(help='commands')

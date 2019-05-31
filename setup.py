@@ -7,9 +7,13 @@ def my_test_suite():
     test_suite = test_loader.discover('tests', pattern='test_*.py')
     return test_suite
 
+
+with open('embarc_tools/version.py', 'r') as f:
+    exec(f.read())
+
 setup(
     name='embarc_cli',
-    version='1.0.3',
+    version=__version__,
     description='This is a command line tool for embarc open source platform',
     long_description_content_type='text/markdown',
     author='Jingru Wang',

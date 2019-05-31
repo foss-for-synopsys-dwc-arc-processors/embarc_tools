@@ -214,11 +214,11 @@ def setup(subparser):
     subparser.add_argument(
         "--cur_core", help="Choose core")
     subparser.add_argument(
-        "--toolchain", help="Choose toolchain")
+        "--toolchain", default="mw", choices=["mw", "gnu"], help="Choose toolchain")
     subparser.add_argument(
         "--osp_root", help="Choose embARC osp root path")
     subparser.add_argument(
-        "-o", "--olevel", default="O3", help="Choose olevel")
+        "-o", "--olevel", default="O3", choices=["Os", "O0", "O1", "O2"], help="Choose olevel")
     subparser.add_argument(
         '-m', '--middleware', action='store', default="common", help='Choose a middleware')
     subparser.add_argument(
