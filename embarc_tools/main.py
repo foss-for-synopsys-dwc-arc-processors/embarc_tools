@@ -1,10 +1,10 @@
 from __future__ import print_function, unicode_literals
+import sys
 import argparse
 import pkgutil
 import importlib
 '''
 import os
-import sys
 sys.path.insert(0, os.path.abspath("embarc_tools"))
 '''
 from embarc_tools import commands
