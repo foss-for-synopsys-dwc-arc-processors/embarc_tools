@@ -204,15 +204,6 @@ class OSP(object):
         else:
             return False
 
-    def support_board(self, root):
-        result = []
-        board_path = os.path.join(root, "board")
-        if os.path.exists(board_path):
-            for file in os.listdir(board_path):
-                if os.path.isdir(os.path.join(board_path, file)):
-                    result.append(file)
-        return result
-
     def supported_olevels(self, root):
         app = "example/baremetal/arc_feature/timer_interrupt"
         app_path = os.path.join(root, app)
@@ -313,15 +304,6 @@ class OSP(object):
                         if cur_core and cur_core in result:
                             result = [cur_core]
                         break
-        return result
-
-    def get_board_version(self, root, board, bd_version=None):
-        result = []
-        board_path = "board/" + board
-        ver_path = os.path.join(root, board_path)
-        if os.path.exists(ver_path):
-            bd_vers_dict = self._board_version_config(root, board, bd_version)
-            result.extend(bd_vers_dict.keys())
         return result
 
     def _board_version_config(self, root, board, bd_version=None):

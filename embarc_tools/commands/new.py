@@ -9,8 +9,9 @@ from ..osp import osp
 from ..utils import mkdir, getcwd, generate_json
 
 help = "Create a new application"
-description = ("Options can be input by command line parameter \n"
+description = ("Options can be input by command line parameter. \n"
                "via the --quick, it will get options from global settings.")
+osppath = osp.OSP()
 
 
 def run(args, remainder=None):
@@ -22,6 +23,7 @@ def run(args, remainder=None):
             args.application = remainder[0]
         elif len(remainder) > 1:
             print("embarc new: error: invalid parameter %s" % remainder[1])
+            sys.exit(1)
 
     olevel = args.olevel
     config = build_config(args)
@@ -54,17 +56,12 @@ def run(args, remainder=None):
     exporter = Exporter("application")
     exporter.gen_file_jinja("makefile.tmpl", config, "makefile", application)
     exporter.gen_file_jinja("main.c.tmpl", config, "main.c", application)
-    print_string("Finish generate makefile and main.c, and they are in " + app_path)
-    if args.csrc != ".":
-        mkdir(os.path.join(getcwd(), application, args.csrc))
+    print_string("Finish generate makefile and main.c, and they are in %s" % app_path)
+    # if args.csrc != ".":
+    #     mkdir(os.path.join(getcwd(), application, args.csrc))
 
 
-def build_config(args):
-    config = dict()
-    config = collections.OrderedDict()
-    application = args.application
-    osppath = osp.OSP()
-    input_root = args.osp_root
+def get_osp_root(input_root=None):
     if not input_root:
         input_root = osppath.get_global("EMBARC_OSP_ROOT")
     if not input_root:
@@ -108,17 +105,26 @@ def build_config(args):
         print_string(msg, level="warning")
         sys.exit(1)
     print_string("Current osp root is: " + osp_root)
+    return osp_root
+
+
+def build_config(args):
+    config = dict()
+    config = collections.OrderedDict()
+    application = args.application
+
+    osp_root = get_osp_root(args.osp_root)
+    support_board = osppath.supported_boards(osp_root)
 
     if args.quick:
         config["APPL"] = application if application else str("helloworld")
         board = osppath.get_global("BOARD")
         if not board:
-            boards = osppath.support_board(osp_root)
-            board = str("emsk") if str("emsk") in boards else boards[0]
+            board = str("emsk") if str("emsk") in support_board else support_board[0]
         config["BOARD"] = board
         bd_ver = osppath.get_global("BD_VER")
         if not bd_ver:
-            bd_ver = osppath.get_board_version(osp_root, board)[-1]
+            bd_ver = osppath.supported_bd_versions(osp_root, board)[-1]
         config["BD_VER"] = bd_ver
         cur_core = osppath.get_global("CUR_CORE")
         if not cur_core:
@@ -143,16 +149,14 @@ def build_config(args):
 
     board = args.board
     bd_ver = args.bd_ver
-    cur_core = args.cur_core
+    cur_core = args.core
     toolchain = args.toolchain
-    # config = dict()
     config = BUILD_CONFIG_TEMPLATE
     config["EMBARC_OSP_ROOT"] = str()
     config = collections.OrderedDict()
     config["APPL"] = application
 
-    support_board = osppath.supported_boards(osp_root)
-    print_string("Support board : {}".format("  ".join(support_board)))
+    print_string("Support boards : {}".format("  ".join(support_board)))
     while True:
         if not board:
             board = get_input("[embARC] Choose board: ")
@@ -180,7 +184,7 @@ def build_config(args):
     print_string("{} with versions {} support cores : {}".format(board, bd_ver, "  ".join(support_core)))
     while True:
         if not cur_core:
-            cur_core = get_input("[embARC] choose core: ")
+            cur_core = get_input("[embARC] Choose core: ")
         if cur_core not in support_core:
             cur_core = None
             print_string("Please choose core from {}" .format(support_core))
@@ -188,7 +192,7 @@ def build_config(args):
         else:
             break
     config["CUR_CORE"] = cur_core
-    support_toolchains = SUPPORT_TOOLCHAIN
+    support_toolchains = osppath.supported_toolchains(osp_root)
     print_string("Support toolchains: {}".format("  ".join(support_toolchains)))
     while True:
         if not toolchain:
@@ -206,32 +210,32 @@ def build_config(args):
 
 def setup(subparser):
     subparser.add_argument(
-        "-a", "--application", help="Specify the path of the application")
+        "-a", "--application", help="specify the path of the application", metavar='')
     subparser.add_argument(
-        "-b", "--board", help="Choose board")
+        "-b", "--board", help="choose board", metavar='')
     subparser.add_argument(
-        "--bd_ver", help="Choose board version")
+        "--bd_ver", help="choose board version", metavar='')
     subparser.add_argument(
-        "--cur_core", help="Choose core")
+        "--core", help="choose core", metavar='')
     subparser.add_argument(
-        "--toolchain", help="Choose toolchain")
+        "--toolchain", choices=["mw", "gnu"], help="choose toolchain", metavar='')
     subparser.add_argument(
-        "--osp_root", help="Choose embARC osp root path")
+        "--osp_root", help="set embARC OSP root path", metavar='')
     subparser.add_argument(
-        "-o", "--olevel", default="O3", help="Choose olevel")
+        "-o", "--olevel", default="O3", choices=["Os", "O0", "O1", "O2"], help="set olevel", metavar='')
     subparser.add_argument(
-        '-m', '--middleware', action='store', default="common", help='Choose a middleware')
+        '-m', '--middleware', action='store', default="common", help='choose a middleware', metavar='')
     subparser.add_argument(
-        '--csrc', action='store', default=".", help='Application source dirs')
+        '--csrc', action='store', default=".", help='specify the path of application C source dirs', metavar='')
     subparser.add_argument(
-        '--asmsrc', action='store', default=".", help='Application source dirs')
+        '--asmsrc', action='store', default=".", help='specify the path of application assembly source dirs', metavar='')
     subparser.add_argument(
-        '--include', action='store', default=".", help='Application include dirs')
+        '--include', action='store', default=".", help='specify the path of application include dirs', metavar='')
     subparser.add_argument(
-        '--defines', action='store', default=".", help='Application defines')
+        '--defines', action='store', default=".", help='application defines', metavar='')
     subparser.add_argument(
-        '--os', action='store', default="", help='Choose os')
+        '--os', action='store', default="", help='choose operation system', metavar='')
     subparser.add_argument(
-        '--library', action='store', default="", help='Choose library')
+        '--library', action='store', default="", help='choose library', metavar='')
     subparser.add_argument(
-        '--quick', action='store_true', default="", help='Create application quickly with default osp and board configuration')
+        '--quick', action='store_true', default="", help='create application quickly with default configuration')

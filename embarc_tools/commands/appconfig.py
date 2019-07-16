@@ -16,16 +16,11 @@ def run(args, remainder=None):
     if remainder:
         print("[embARC] embarc appconfig: error: invalid parameter %s" % remainder[0])
         sys.exit(1)
-    root = getcwd()
-    app_path = None
+    app_path = args.path
     recordBuildConfig = dict()
     osppath = osp.OSP()
     osp_root = None
 
-    if not args.application:
-        app_path = root
-    else:
-        app_path = os.path.join(root, args.application)
     osppath = osp.OSP()
     makefile = osppath.get_makefile(app_path)
     if makefile:
@@ -37,8 +32,8 @@ def run(args, remainder=None):
             recordBuildConfig["BOARD"] = args.board
         if args.bd_ver:
             recordBuildConfig["BD_VER"] = args.bd_ver
-        if args.cur_core:
-            recordBuildConfig["CUR_CORE"] = args.cur_core
+        if args.core:
+            recordBuildConfig["CUR_CORE"] = args.core
         if args.toolchain:
             recordBuildConfig["TOOLCHAIN"] = args.toolchain
         if args.olevel:
@@ -58,16 +53,16 @@ def run(args, remainder=None):
 
 def setup(subparser):
     subparser.add_argument(
-        "-a", "--application", help="Specify the path of the application")
+        "-d", "--path", default=getcwd(), help="application path", metavar='')
     subparser.add_argument(
-        "-b", "--board", help="Set board")
+        "-b", "--board", help="set board", metavar='')
     subparser.add_argument(
-        "--bd_ver", help="Set board version")
+        "--bd_ver", help="set board version", metavar='')
     subparser.add_argument(
-        "--cur_core", help="Set core")
+        "--core", help="set core", metavar='')
     subparser.add_argument(
-        "--toolchain", help="Set toolchain")
+        "--toolchain", choices=["mw", "gnu"], help="set toolchain", metavar='')
     subparser.add_argument(
-        "--osp_root", help="Set embARC osp root path")
+        "--osp_root", help="set embARC OSP root path", metavar='')
     subparser.add_argument(
-        "-o", "--olevel", help="Set olevel")
+        "-o", "--olevel", default="O3", choices=["Os", "O0", "O1", "O2", "O3"], help="set olevel", metavar='')

@@ -2,8 +2,11 @@ from __future__ import print_function, division, unicode_literals
 import os
 from ...notify import print_string
 from ...settings import EMBARC_OSP_URL
-from ...osp import repo, osp
+from ...osp import osp
 from ...utils import getcwd, read_json, unzip
+import git
+from git.util import RemoteProgress
+
 
 help = "Get, set or unset osp configuration."
 
@@ -55,15 +58,13 @@ def run(args, remainder=None):
                         print_string("Add (%s) to user profile osp.json" % path)
                         args.list = True
             elif url == EMBARC_OSP_URL:
-                osprepo = repo.Repo.fromurl(url)
-                path = dest if dest else getcwd()
-                source_type = "git"
                 if not os.path.exists(name):
-                    print_string("Start clone {}".format(osprepo.name))
-                    osprepo.clone(osprepo.url, path=os.path.join(path, name), rev=None, depth=None, protocol=None, offline=False)
-                    print_string("Finish clone {}".format(osprepo.name))
+                    path = dest if dest else getcwd()
+                    print_string("Start clone {}".format(url))
+                    git.Repo.clone_from(url, os.path.join(path, name), RemoteProgress())
+                    source_type = "git"
                     osppath.set_path(name, source_type, os.path.join(path, name), url)
-                    print_string("Add (%s) to user profile osp.json" % os.path.join(path, osprepo.name))
+                    print_string("Add (%s) to user profile osp.json" % os.path.join(path, name))
                     args.list = True
                 else:
                     print_string("There is already a folder or file named '%s' under current path" % name)
@@ -120,12 +121,12 @@ def setup(subparser):
     subparser.usage = usage
     mutualex_group = subparser.add_mutually_exclusive_group()
     mutualex_group.add_argument(
-        "--add", action='store_true', help='Fetch the remote source code and add it to osp.json')
+        "--add", action='store_true', help='fetch the remote source code and add it to osp.json')
     mutualex_group.add_argument(
-        '-s', '--set', help="Set a global EMBARC_OSP_ROOT, make sure you have added it to osp.json")
+        '-s', '--set', help="set a global EMBARC_OSP_ROOT, make sure you have added it to osp.json", metavar='')
     mutualex_group.add_argument(
-        "--rename", action='store_true', help="Rename osp source code.")
+        "--rename", action='store_true', help="rename osp source code")
     mutualex_group.add_argument(
-        '-rm', '--remove', help="Remove the specified osp source code.")
+        '-rm', '--remove', help="remove the specified osp source code", metavar='')
     subparser.add_argument(
-        '-l', '--list', action='store_true', help="Show all recored embARC OSP source code")
+        '-l', '--list', action='store_true', help="show all recored embARC OSP source code")

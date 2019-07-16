@@ -6,19 +6,14 @@ from ..settings import get_input, get_config
 from ..builder import build
 from ..utils import cd, getcwd, read_json
 help = "Build application"
-description = ("Compile code using toolchain\n"
+description = ("Compile code using toolchain.\n"
                "Currently supported Toolchain: GNU, MetaWare.")
 
 
 def run(args, remainder=None):
     osproot = None
-    curdir = args.outdir
-    app_path = None
+    app_path = args.path
     recordBuildConfig = dict()
-    if args.path:
-        app_path = args.path
-    else:
-        app_path = getcwd()
     app_path = os.path.abspath(app_path)
 
     if not (os.path.exists(app_path) and os.path.isdir(app_path)):
@@ -54,7 +49,7 @@ def run(args, remainder=None):
             args.target = target
         recordBuildConfig.update(make_config)
 
-    builder = build.embARC_Builder(osproot, recordBuildConfig, curdir)
+    builder = build.embARC_Builder(osproot, recordBuildConfig, args.outdir)
     if args.export:
         builder.get_build_cmd(app_path, target=None, parallel=parallel, silent=False)
         with cd(app_path):
@@ -101,24 +96,25 @@ def run(args, remainder=None):
 
 def setup(subparser):
     subparser.add_argument(
-        "-d", "--path", default=".", help="Application path")
+        "-d", "--path", default=getcwd(), help="application path", metavar='')
     subparser.add_argument(
-        "--outdir", help="Copy all files to this exported directory")
+        "--outdir", help="output objs root directory", metavar='')
     subparser.add_argument(
-        "-b", "--board", help="Build using the given BOARD")
+        "-b", "--board", help="choose board", metavar='')
     subparser.add_argument(
-        "--bd_ver", help="Build using the given BOARD VERSION")
+        "--bd_ver", help="choose board version", metavar='')
     subparser.add_argument(
-        "--core", help="Build using the given CORE")
+        "--core", help="choose core", metavar='')
     subparser.add_argument(
-        "-o", "--olevel", help="Build using the given OLEVEL")
+        "-o", "--olevel", default="O3", choices=["Os", "O0", "O1", "O2", "O3"], help="set olevel", metavar='')
     subparser.add_argument(
-        "-t", "--toolchain", help="Build toolchain. Example: gnu, mw")
+        "--toolchain", choices=["mw", "gnu"], help="choose toolchain", metavar='')
     subparser.add_argument(
-        "-j", "--parallel", type=int, help="Build application with -j")
+        "-j", "--parallel", type=int, help="build application with -j", metavar='')
     subparser.add_argument(
-        "--target", default="all", choices=["elf", "bin", "hex", "size", "info", "opt" "all", "run", "clean"], help="Choose build target, default target is all")
+        "--target", default="all", choices=["elf", "bin", "hex", "size", "info", "opt" "all", "run", "clean", "distclean"],
+        help="choose build target, default target is all", metavar='')
     subparser.add_argument(
-        "-g", "--export", action="store_true", help="Generate IDE project file for your application")
+        "-g", "--export", action="store_true", help="generate IDE project files for your application")
     subparser.add_argument(
-        "--app_config", help="Specify application configuration. Default is to look for 'embarc_app.json")
+        "--app_config", help="specify application configuration, default is to look for embarc_app.json", metavar='')
