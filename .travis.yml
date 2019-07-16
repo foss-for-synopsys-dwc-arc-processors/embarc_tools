@@ -28,5 +28,5 @@ deploy:
 
   on:
     tags: true
-    repo: wangnuannuan/embarc_tools
+    repo: "$TRAVIS_REPO_SLUG"
     python: 3.6
