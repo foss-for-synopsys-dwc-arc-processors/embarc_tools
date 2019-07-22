@@ -5,11 +5,11 @@ embARC CLI is the name of the embARC command-line tool, packaged as `embarc_tool
 This document covers the installations and usage of embARC CLI.
 ## Usage
 The basic workflow for embARC CLI is to:
-1. Create a application.
+1. Create an application.
 2. Config the application.
 3. Build the application code.
 
-<span class="tips">**Tip:** To list all embARC CLI commands, use `embarc --help`, A detailed command-specific help is available by using `embarc <command> --help`.
+<span class="tips">**Tip:** To list all embARC CLI commands, use `embarc --help`. A detailed command-specific help is available by using `embarc <command> --help`.
 ```
 $ embarc -h
 usage: embarc [-h] [--version]             ...
@@ -43,7 +43,7 @@ $ pip install embarc-cli
 ```
 Alternatively, you can get the development version of embARC CLI by cloning the development repository:
 ```
-$ git clone xxxxxxxxxxxxxxx
+$ git clone https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools.git
 ```
 Once cloned, you can install embARC CLI as a Python package:
 ```
@@ -400,7 +400,6 @@ $ embarc config osp --list
     directory: C:/Users/jingru/Documents/embarc/testcli/new_osp
     source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
     type: git
-
 ```
 To rename a `EMBARC_OSP_ROOT`, run:
 ```
@@ -441,7 +440,7 @@ You can use `embarc config toolchain` to config `TOOLCHAIN`. Currently supported
 You can check the current toolchain in your platform.
 ```
 $ embarc config toolchain gnu
-[embARC] Current GNU verion: 2018.09
+[embARC] Current GNU verion: 2019.03
 ```
  If you haven't installed the GNU yet, it will remind you to download it, using `--version` to specify the version number. embARC CLI doesn't support for downloading MetaWare.
 
