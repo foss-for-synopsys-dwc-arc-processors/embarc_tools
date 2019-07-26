@@ -1,11 +1,15 @@
 from __future__ import print_function, unicode_literals
-import argparse
 import sys
+import argparse
 import pkgutil
 import importlib
-import pkg_resources
+'''
+import os
+sys.path.insert(0, os.path.abspath("embarc_tools"))
+'''
 from embarc_tools import commands
 from embarc_tools.commands import config_commands
+from embarc_tools.version import __version__
 
 
 def import_submodules(package, recursive=True):
@@ -27,21 +31,21 @@ def import_submodules(package, recursive=True):
 
 SUBCOMMANDS = import_submodules(commands, recursive=False)
 CONFIG_SUBCOMMANDS = import_submodules(config_commands)
-ver = pkg_resources.require("embarc_cli")[0].version
+ver = __version__
 
 
 def main():
     parser = argparse.ArgumentParser(
         prog='embarc',
-        description="Command-line tool for embARC OSP - https://embarc.org/embarc_osp\nversion %s\n\nUse \"embarc <command> -h|--help\" for detailed help.\nOnline manual and guide available at https://github.com/foss-for-synopsys-dwc-arc-processors/embarc-cli" % ver,
+        description="Command-line tool for embARC OSP - https://embarc.org/embarc_osp\nversion %s\n\nUse \"embarc <command> -h|--help\" for detailed help.\nOnline manual and guide available at https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools" % ver,
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument(
         "--version", action='version',
-        version=pkg_resources.require("embarc_cli")[0].version,
+        version=__version__,
         help="Display version"
     )
-    subparsers = parser.add_subparsers(help='commands')
+    subparsers = parser.add_subparsers(title="Commands", metavar="           ")
 
     current_command = ["new", "build", "appconfig", "config"]
     subcommand = SUBCOMMANDS.keys()
@@ -51,7 +55,7 @@ def main():
     for key in current_command:
         subparser = subparsers.add_parser(key, help=SUBCOMMANDS[key].help, description=SUBCOMMANDS[key].description)
         if key == "config":
-            config_subparsers = subparser.add_subparsers(help='commands')
+            config_subparsers = subparser.add_subparsers(title="Commands", metavar="           ")
             for name, module in CONFIG_SUBCOMMANDS.items():
                 cfg_subparser = config_subparsers.add_parser(name, help=module.help)
                 module.setup(cfg_subparser)
@@ -64,7 +68,10 @@ def main():
         return parser.print_help()
 
     args, remainder = parser.parse_known_args()
-    return args.func(args, remainder)
+    try:
+        return args.func(args, remainder)
+    except Exception:
+        return parser.print_help()
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 import platform
+import sys
 
 EMBARC_OSP_URL = "https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git"
 OSP_DIRS = ["arc", "board", "device", "inc", "library", "middleware"]
@@ -47,10 +48,14 @@ BUILD_SIZE_SECTION_NAMES = ['text', 'data', 'bss']
 
 
 def get_input(input_str):
-    if PYTHON_VERSION.startswith("2"):
-        return raw_input(input_str)
-    else:
-        return input(input_str)
+    try:
+        if PYTHON_VERSION.startswith("2"):
+            return raw_input(input_str)
+        else:
+            return input(input_str)
+    except KeyboardInterrupt:
+        print("user aborted!")
+        sys.exit(255)
 
 
 def get_config(config):

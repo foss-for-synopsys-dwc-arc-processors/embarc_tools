@@ -30,25 +30,25 @@ SECTIONS
 		/* secureshield code and rodata */
 		. = ALIGN(4);
 		_f_rom_secureshieldruntime = .;
-		KEEP(*(.rom.secureshield.secure))
+		KEEP(*(.rom.secureshield.secure .rom.secureshield.secure.*))
 
 		/* the following are secureshield application configuration */
 		_f_cfg_secureshield = .;
 		/* secureshield container configuration tables */
 		. = ALIGN(32);
 		__secureshield_cfgtbl_start = .;
-		KEEP(*(.keep.secureshield.cfgtbl))
+		KEEP(*(.keep.secureshield.cfgtbl .keep.secureshield.cfgtbl.*))
 		. = ALIGN(32);
 		__secureshield_cfgtbl_end = .;
 
 		/* pointers to secureshield secure shields configuration tables */
 		/* note: no further alignment here, we need to have the exact list of pointers */
 		__secureshield_cfgtbl_ptr_start = .;
-		KEEP(*(.keep.secureshield.cfgtbl_ptr_first))
-		KEEP(*(.keep.secureshield.cfgtbl_ptr))
+		KEEP(*(.keep.secureshield.cfgtbl_ptr_first .keep.secureshield.cfgtbl_ptr_first.*))
+		KEEP(*(.keep.secureshield.cfgtbl_ptr .keep.secureshield.cfgtbl_ptr.*))
 		__secureshield_cfgtbl_ptr_end = .;
 
-		KEEP(*(.keep.secureshield.ac_table))
+		KEEP(*(.keep.secureshield.ac_table .keep.secureshield.ac_table.*))
 
 		. = ALIGN(32);
 
@@ -72,13 +72,13 @@ SECTIONS
 	/* secure rom sections {{item.section_name}} */
 	.{{item.section_name}}.rom ALIGN({{item.alignment}}) : {
 		_f_text_{{item.section_name}} = .;
-		*(.{{item.section_name}}.text)
+		*(.{{item.section_name}}.text .{{item.section_name}}.text.*)
 #if SECURESHIELD_VERSION == 2
 		. = ALIGN(CONTAINER_ADDRESS_ALIGNMENT);
 #endif
 		_e_text_{{item.section_name}} = .;
 		_f_rodata_{{item.section_name}} = .;
-		*(.{{item.section_name}}.rodata)
+		*(.{{item.section_name}}.rodata .{{item.section_name}}.rodata.*)
 		_e_rodata_{{item.section_name}} = ALIGN({{item.alignment}});
 	} > SECURE_ROM
 {% endfor %}
@@ -90,8 +90,8 @@ SECTIONS
 		. = ALIGN(4);
 		_f_ram_secureshieldruntime = .;
 
-		KEEP(*(.ram.secureshield.secure))
-		KEEP(*(.ram.secureshield.stack))
+		KEEP(*(.ram.secureshield.secure .ram.secureshield.secure.*))
+		KEEP(*(.ram.secureshield.stack .ram.secureshield.stack.*))
 
 #if  SECURESHIELD_VERSION == 1
 		_e_ram_secureshieldruntime = _f_ram_secureshieldruntime + CONTAINER_SIZE_ALIGNMENT(. - _f_ram_secureshieldruntime);
@@ -111,12 +111,12 @@ SECTIONS
 	/* secure ram sections {{item.section_name}} */
 	.{{item.section_name}}.ram.data ALIGN({{item.alignment}}) : {
 		_f_data_{{item.section_name}} = .;
-		*(.{{item.section_name}}.data)
+		*(.{{item.section_name}}.data .{{item.section_name}}.data.*)
 		_e_data_{{item.section_name}} = .;
 	} > SECURE_RAM AT > SECURE_ROM
 	.{{item.section_name}}.ram.bss : {
 		_f_bss_{{item.section_name}} = .;
-		*(.{{item.section_name}}.bss)
+		*(.{{item.section_name}}.bss .{{item.section_name}}.bss.*)
 		_e_bss_{{item.section_name}} = ALIGN({{item.alignment}});
 	} > SECURE_RAM
 	_f_data_load_{{item.section_name}} = LOADADDR(.{{item.section_name}}.ram.data);
@@ -129,15 +129,15 @@ SECTIONS
 	{
 		_f_text_background_container = .;
 		_f_init = .;
-		KEEP (*(.init_vector))
-		KEEP (*(.init_bootstrap))
+		KEEP (*(.init_vector .init_vector.*))
+		KEEP (*(.init_bootstrap .init_bootstrap.*))
 		_e_init = .;
 	} > NORMAL_ROM
 
 	.vector : ALIGN(1024)
 	{
 		_f_vector = .;
-		*(.vector)
+		*(.vector .vector.*)
 		_e_vector = .;
 	} > NORMAL_ROM
 
@@ -198,13 +198,13 @@ SECTIONS
 	/* normal rom sections {{item.section_name}} */
 	.{{item.section_name}}.rom ALIGN({{item.alignment}}) : {
 		_f_text_{{item.section_name}} = .;
-		*(.{{item.section_name}}.text)
+		*(.{{item.section_name}}.text .{{item.section_name}}.text.*)
 #if SECURESHIELD_VERSION == 2
 		. = ALIGN(CONTAINER_ADDRESS_ALIGNMENT);
 #endif
 		_e_text_{{item.section_name}} = .;
 		_f_rodata_{{item.section_name}} = .;
-		*(.{{item.section_name}}.rodata)
+		*(.{{item.section_name}}.rodata .{{item.section_name}}.rodata.*)
 		_e_rodata_{{item.section_name}} = ALIGN({{item.alignment}});
 	} > NORMAL_ROM
 {% endfor %}
@@ -278,12 +278,12 @@ SECTIONS
 	/* normal ram sections {{item.section_name}} */
 	.{{item.section_name}}.ram.data ALIGN({{item.alignment}}) : {
 		_f_data_{{item.section_name}} = .;
-		*(.{{item.section_name}}.data)
+		*(.{{item.section_name}}.data .{{item.section_name}}.data.*)
 		_e_data_{{item.section_name}} = .;
 	} > NORMAL_RAM AT > NORMAL_ROM
 	.{{item.section_name}}.ram.bss : {
 		_f_bss_{{item.section_name}} = .;
-		*(.{{item.section_name}}.bss)
+		*(.{{item.section_name}}.bss .{{item.section_name}}.bss.*)
 		_e_bss_{{item.section_name}} = ALIGN({{item.alignment}});
 	} > NORMAL_RAM
 	_f_data_load_{{item.section_name}} = LOADADDR(.{{item.section_name}}.ram.data);

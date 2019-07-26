@@ -1,38 +1,35 @@
-[ ![Travis CI Status](https://travis-ci.org/foss-for-synopsys-dwc-arc-processors/embarc_tools.svg?branch=master)](https://travis-ci.org/foss-for-synopsys-dwc-arc-processors/embarc_tools) [![Latest Version](https://img.shields.io/pypi/v/embarc_cli.svg)](https://pypi.org/project/embarc_cli/) [![Supported Python versions](https://img.shields.io/pypi/pyversions/embarc_cli.svg)](https://pypi.org/project/embarc_cli/)
+[![Build Status](https://travis-ci.com/foss-for-synopsys-dwc-arc-processors/embarc_tools.svg?branch=master)](https://travis-ci.com/foss-for-synopsys-dwc-arc-processors/embarc_tools) [![Latest Version](https://img.shields.io/pypi/v/embarc_cli.svg)](https://pypi.org/project/embarc_cli/) [![Supported Python versions](https://img.shields.io/pypi/pyversions/embarc_cli.svg)](https://pypi.org/project/embarc_cli/)
 ## Introduction
 embARC CLI is the name of the embARC command-line tool, packaged as `embarc_tools`. embARC CLI support for embARC application creation, build and config, use of the embARC Open Software Platform.
 
 This document covers the installations and usage of embARC CLI.
 ## Usage
 The basic workflow for embARC CLI is to:
-1. Create a application.
+1. Create an application.
 2. Config the application.
 3. Build the application code.
 
-<span class="tips">**Tip:** To list all embARC CLI commands, use `embarc --help`, A detailed command-specific help is available by using `embarc <command> --help`.
+<span class="tips">**Tip:** To list all embARC CLI commands, use `embarc --help`. A detailed command-specific help is available by using `embarc <command> --help`.
 ```
 $ embarc -h
-usage: embarc [-h] [-v] [-q] [--version] {new,build,appconfig,config} ...
+usage: embarc [-h] [--version]             ...
 
 Command-line tool for embARC OSP - https://embarc.org/embarc_osp
-version 0.0.3
+version 1.0.4
 
 Use "embarc <command> -h|--help" for detailed help.
 Online manual and guide available at https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools
 
-positional arguments:
-  {new,build,appconfig,config}
-                        commands
-    new                 Create a new application
-    build               Build application
-    appconfig           Get or set application config
-    config              Get, set or unset configuration options.
-
 optional arguments:
-  -h, --help            show this help message and exit
-  -v                    Increase the verbosity of the output
-  -q                    Decrease the verbosity of the output
-  --version             Display version
+  -h, --help   show this help message and exit
+  --version    Display version
+
+Commands:
+
+    new        Create a new application
+    build      Build application
+    appconfig  Get or set application config
+    config     Get, set or unset configuration options.
 ```
 ### Installation
 Windows and Linux support for embARC CLI.
@@ -46,7 +43,7 @@ $ pip install embarc-cli
 ```
 Alternatively, you can get the development version of embARC CLI by cloning the development repository:
 ```
-$ git clone xxxxxxxxxxxxxxx
+$ git clone https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools.git
 ```
 Once cloned, you can install embARC CLI as a Python package:
 ```
@@ -87,7 +84,7 @@ Let's create an application named `helloworld` for embARC OSP:
 ```
 $ embarc new helloworld
 [embARC] Current osp root is: C:/Users/jingru/Documents/embarc/embarc_osp
-[embARC] Support board : axs  emsk  hsdk  iotdk  nsim
+[embARC] Support boards : axs  emsk  hsdk  iotdk  nsim
 [embARC] Choose board: emsk
 [embARC] emsk support versions : 11  22  23
 [embARC] Choose board version: 11
@@ -134,6 +131,7 @@ When you create application with `embarc new`, it will generate a file `embarc_a
 ### Build your application
 Use the `embarc build` command to compile your code:
 ```
+$ embarc build
 [embARC] Read embarc_app.json
 [embARC] Build target: all
 [embARC] Current configuration
@@ -195,7 +193,7 @@ mdb -nooptions -nogoifmain -toggle=include_local_symbols=1 -hard -digilent     -
 [DIGILENT] Suppress these messages with environment variable DIG_VERBOSE=0.
 SmaRT Build Configuration Register: 0x10003 (stack size=64)
 ```
-The Trea Term output:
+The Tera Term output:
 ```
 -----------------------------------------------------------
  ____                                _ ____
@@ -294,29 +292,18 @@ C:\WINDOWS\system32\cmd.exe /C if exist  .sc.project   C:\WINDOWS\system32\cmd.e
 2. `embarc build [other paramters] xxx`, embARC CLI will choose the last parameter as target.
 
 #### Export Eclipse IDE file
-If you need to dbug your code, you can export your source tree to IDE project file to use the IDE's debugging facilities. embARC CLI supports exporting to Eclipse using GNU or MetaWare.
+If you need to debug your code, you can export your source tree to IDE project file to use the IDE's debugging facilities. embARC CLI supports exporting to Eclipse using GNU or MetaWare.
 
 For example:
 ```
 $ embarc build  --export
 [embARC] Read embarc_app.json
-[embARC] Build target: all
 [embARC] Current configuration
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
 | APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
 | helloworld | iotdk | 10     | arcem9d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-[embARC] Build command: make BD_VER=10 TOOLCHAIN=gnu OLEVEL=O3 APPL=helloworld BOARD=iotdk CUR_CORE=arcem9d all
-[embARC] Start to build application
-"Creating Directory    : " obj_iotdk_10/gnu_arcem9d/application/.
- ...
-"Copy TCF file C:/Users/jingru/Documents/embarc/embarc_osp/board/iotdk/configs/10/tcf/arcem9d.tcf to obj_iotdk_10/gnu_arcem9d/embARC_generated/arc.tcf"
- ...
-"Archiving             : " obj_iotdk_10/gnu_arcem9d/liblibclib.a
-"Archiving             : " obj_iotdk_10/gnu_arcem9d/libembarc.a
-"Linking               : " obj_iotdk_10/gnu_arcem9d/helloworld_gnu_arcem9d.elf
-[embARC] Completed in: (97.7479999065)s
 [embARC] Start to generate IDE project
 [embARC] Run command [make opt]
 [embARC] Get inculdes and defines
@@ -328,24 +315,24 @@ C:\Users\jingru\Documents\embarc\testcli\helloworld
 - Open **ARC GNU IDE 2018.09 Eclipse**, click **File -> Open Projects from File System** .
 - Paste `C:\Users\jingru\Documents\embarc\testcli\helloworld` to **Import source**, and click **Finish**.You can your project in **Project Explorer** view.
 
-  <img width="500" src="https://github.com/wangnuannuan/PythonLearn/raw/master/pic/import.PNG"/>
+  <img width="500" src="doc/static/img/import.PNG"/>
 
 - From the **Project Explorer** view, right-click the project name `helloworld`, select **Properitise** and click **C/C++ Build**, you can see the build settings.
 
-  <img width="500" src="https://github.com/wangnuannuan/PythonLearn/raw/master/pic/build.PNG"/>
+  <img width="500" src="doc/static/img/build.PNG"/>
   
   Click **C/C++ General -> Paths and Symbols**.
   
-  <img width="500" src="https://github.com/wangnuannuan/PythonLearn/raw/master/pic/paths.png"/>
+  <img width="500" src="doc/static/img/paths.png"/>
 
 - Click the **Run > Debug Configurations...** menu option. The Debug Configurations dialog opens.
 - Click **helloworld-arcem9d**, you can see that data is automatically entered, take a moment to verify its accuracy or change as needed.
   
-  <img width="500" src="https://github.com/wangnuannuan/PythonLearn/raw/master/pic/gdbserver.PNG"/>
+  <img width="500" src="doc/static/img/gdbserver.PNG"/>
 
 - Click **Debug**. You may be prompted to switch to the Debug perspective. Click **Yes**.
 
-  <img width="500" src="https://github.com/wangnuannuan/PythonLearn/raw/master/pic/debug.PNG"/>
+  <img width="500" src="doc/static/img/debug.PNG"/>
 
 ### embARC CLI configuration
 The embARC CLI provides a flexible mechanism for configuring the embARC program. You can use it to set, get, update or unset embARC build configuration options. These options can be global or local (per program).
@@ -413,7 +400,6 @@ $ embarc config osp --list
     directory: C:/Users/jingru/Documents/embarc/testcli/new_osp
     source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
     type: git
-
 ```
 To rename a `EMBARC_OSP_ROOT`, run:
 ```
@@ -454,7 +440,7 @@ You can use `embarc config toolchain` to config `TOOLCHAIN`. Currently supported
 You can check the current toolchain in your platform.
 ```
 $ embarc config toolchain gnu
-[embARC] Current GNU verion: 2018.09
+[embARC] Current GNU verion: 2019.03
 ```
  If you haven't installed the GNU yet, it will remind you to download it, using `--version` to specify the version number. embARC CLI doesn't support for downloading MetaWare.
 
