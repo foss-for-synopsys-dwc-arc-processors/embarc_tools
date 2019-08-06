@@ -349,7 +349,7 @@ def pqueryOutputinline(command, console=False, **kwargs):
     try:
         with io.open(file_name, "wb") as writer, io.open(file_name, "rb", 1) as reader:
             proc = subprocess.Popen(
-                command, stdout=writer, stderr=subprocess.PIPE, shell=True, bufsize=1, **kwargs
+                command, stdout=writer, stderr=writer, shell=True, bufsize=1, **kwargs
             )
             end = ""
             # if PYTHON_VERSION.startswith("3"):
