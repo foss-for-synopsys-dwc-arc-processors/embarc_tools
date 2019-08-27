@@ -306,6 +306,23 @@ class OSP(object):
                         break
         return result
 
+    def supported_targets(self, root, board, bd_version, cur_core=None):
+        app = "example/baremetal/arc_feature/timer_interrupt"
+        app_path = os.path.join(root, app)
+        result = list()
+        with cd(app_path):
+            cmd = ["make", "help"]
+            cmd_output = pquery(cmd)
+            if cmd_output:
+                opt_lines = cmd_output.splitlines()
+                for opt_line in opt_lines:
+                    if opt_line.startswith("Available Configurations"):
+                        break
+                    if str("-") in opt_line:
+                        board_opt_line = opt_line.split("-", 1)[0]
+                        result.append(board_opt_line.split())
+        return result
+
     def _board_version_config(self, root, board, bd_version=None):
         board_path = os.path.join(root, "board", board)
         bd_vers = dict()

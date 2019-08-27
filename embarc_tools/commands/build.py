@@ -4,10 +4,12 @@ import sys
 from ..project import Generator
 from ..settings import get_input, get_config
 from ..builder import build
+from ..osp import osp
 from ..utils import cd, getcwd, read_json
 help = "Build application"
 description = ("Compile code using toolchain.\n"
                "Currently supported Toolchain: GNU, MetaWare.")
+osppath = osp.OSP()
 
 
 def run(args, remainder=None):
@@ -112,7 +114,7 @@ def setup(subparser):
     subparser.add_argument(
         "-j", "--parallel", type=int, help="build application with -j", metavar='')
     subparser.add_argument(
-        "--target", default="all", choices=["elf", "bin", "hex", "size", "info", "opt" "all", "run", "clean", "distclean"],
+        "--target", default="all", choices=osppath.supported_targets,
         help="choose build target, default target is all", metavar='')
     subparser.add_argument(
         "-g", "--export", action="store_true", help="generate IDE project files for your application")
