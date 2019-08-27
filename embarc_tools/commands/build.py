@@ -112,7 +112,7 @@ def setup(subparser):
     subparser.add_argument(
         "-j", "--parallel", type=int, help="build application with -j", metavar='')
     subparser.add_argument(
-        "--target", default="all", choices=["elf", "bin", "hex", "size", "info", "opt" "all", "run", "clean", "distclean"],
+        "--target", default="all",
         help="choose build target, default target is all", metavar='')
     subparser.add_argument(
         "-g", "--export", action="store_true", help="generate IDE project files for your application")

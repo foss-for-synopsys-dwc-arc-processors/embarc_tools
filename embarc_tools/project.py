@@ -174,7 +174,9 @@ class Ide(object):
             cproject_template["core"][core]["id"] = core_id
 
         for path in includes:
-            if not path.startswith("obj_"):
+            if path.startswith("./"):
+                include = os.path.join(self.ide['common']["name"], path[2:])
+            elif not path.startswith("obj_"):
                 include = os.path.join(self.ide['common']["name"], "embARC", path)
             else:
                 include = os.path.join(self.ide['common']["name"], path)
@@ -210,6 +212,8 @@ class Ide(object):
         for path in includes:
             if path != "." and "embARC_generated" not in path:
                 if "/" in path:
+                    if path.startswith("./"):
+                        pass
                     if path.startswith("board"):
                         link_folders.append(path.rsplit("/", 2)[0])
                     else:

@@ -133,7 +133,7 @@ class Gnu(ARCtoolchain):
             latesturl = None
             if items:
                 a_bf = BeautifulSoup(str(items[0]))
-                a_items = a_bf.find_all('a', class_='d-flex flex-items-center')
+                a_items = a_bf.find_all('a', class_='d-flex flex-items-center min-width-0')
                 for a_item in a_items:
                     a_url = a_item.get('href')
                     if pack_format in a_url:

@@ -4,6 +4,10 @@ cache:
   directories:
   - ".cache/result"
   - ".cache/toolchain"
+env:
+  global:
+    - TOOLCHAIN_CACHE_FOLDER="$HOME/.cache/toolchain"
+    
 python:
 - '2.7'
 - '3.6'
