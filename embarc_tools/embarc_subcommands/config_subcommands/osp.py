@@ -117,7 +117,8 @@ def run(args, remainder=None):
             osppath.list_path(show=True, current=current_osp)
 
 
-def setup(subparser):
+def setup(subparsers):
+    subparser = subparsers.add_parser('osp', help=help)
     subparser.usage = usage
     mutualex_group = subparser.add_mutually_exclusive_group()
     mutualex_group.add_argument(
@@ -130,3 +131,4 @@ def setup(subparser):
         '-rm', '--remove', help="remove the specified osp source code", metavar='')
     subparser.add_argument(
         '-l', '--list', action='store_true', help="show all recored embARC OSP source code")
+    subparser.set_defaults(func=run)

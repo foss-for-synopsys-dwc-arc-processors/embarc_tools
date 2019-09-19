@@ -208,7 +208,8 @@ def build_config(args):
     return config
 
 
-def setup(subparser):
+def setup(subparsers):
+    subparser = subparsers.add_parser('new', help=help, description=description)
     subparser.add_argument(
         "-a", "--application", help="specify the path of the application", metavar='')
     subparser.add_argument(
@@ -239,3 +240,4 @@ def setup(subparser):
         '--library', action='store', default="", help='choose library', metavar='')
     subparser.add_argument(
         '--quick', action='store_true', default="", help='create application quickly with default configuration')
+    subparser.set_defaults(func=run)

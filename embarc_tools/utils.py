@@ -18,6 +18,8 @@ import shutil
 import zipfile
 import tarfile
 import json
+import pkgutil
+import importlib
 
 cwd_root = ""
 _cwd = os.getcwd()
@@ -415,3 +417,20 @@ def pqueryTemporaryFile(command):
         remove(file_name)
     del proc
     return returncode, rt_list
+
+def import_submodules(package, recursive=True):
+    """ Import all submodules of a module, recursively, including subpackages
+
+    :param package: package (name or actual module)
+    :type package: str | module
+    :rtype: dict[str, types.ModuleType]
+    """
+    results = {}
+    for _, name, is_pkg in pkgutil.walk_packages(package.__path__):
+        full_name = package.__name__ + '.' + name
+        if not is_pkg:
+            results[name] = importlib.import_module(full_name)
+        elif recursive:
+            results.update(import_submodules(full_name))
+    return results
+
