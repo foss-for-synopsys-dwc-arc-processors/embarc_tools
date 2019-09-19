@@ -51,7 +51,8 @@ def run(args, remainder=None):
         return
 
 
-def setup(subparser):
+def setup(subparsers):
+    subparser = subparsers.add_parser('appconfig', help=help, description=description)
     subparser.add_argument(
         "-d", "--path", default=getcwd(), help="application path", metavar='')
     subparser.add_argument(
@@ -66,3 +67,4 @@ def setup(subparser):
         "--osp_root", help="set embARC OSP root path", metavar='')
     subparser.add_argument(
         "-o", "--olevel", default="O3", choices=["Os", "O0", "O1", "O2", "O3"], help="set olevel", metavar='')
+    subparser.set_defaults(func=run)

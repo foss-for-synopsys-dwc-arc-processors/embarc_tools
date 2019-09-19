@@ -52,7 +52,8 @@ def run(args, remainder=None):
         return
 
 
-def setup(subparser):
+def setup(subparsers):
+    subparser = subparsers.add_parser('toolchain', help=help)
     subparser.usage = usage
     subparser.add_argument(
         "--version", action='store_true', help="Choose toolchain version.")
@@ -60,3 +61,4 @@ def setup(subparser):
         "--download", action='store_true', help="Downlad the latested toolchain only support gnu.")
     subparser.add_argument(
         "--set", help="Set a toolchain as global setting.")
+    subparser.set_defaults(func=run)

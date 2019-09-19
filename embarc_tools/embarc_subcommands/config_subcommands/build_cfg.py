@@ -22,5 +22,7 @@ def run(args, remainder=None):
         osppath.set_global(config, value)
 
 
-def setup(subparser):
+def setup(subparsers):
+    subparser = subparsers.add_parser('build_cfg', help=help)
     subparser.usage = usage
+    subparser.set_defaults(func=run)

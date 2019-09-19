@@ -94,7 +94,8 @@ def run(args, remainder=None):
                 print("[embARC] Failed: {}".format(information.get("reason")))
 
 
-def setup(subparser):
+def setup(subparsers):
+    subparser = subparsers.add_parser('build', help=help, description=description)
     subparser.add_argument(
         "-d", "--path", default=getcwd(), help="application path", metavar='')
     subparser.add_argument(
@@ -118,3 +119,5 @@ def setup(subparser):
         "-g", "--export", action="store_true", help="generate IDE project files for your application")
     subparser.add_argument(
         "--app_config", help="specify application configuration, default is to look for embarc_app.json", metavar='')
+    subparser.set_defaults(func=run)
+
