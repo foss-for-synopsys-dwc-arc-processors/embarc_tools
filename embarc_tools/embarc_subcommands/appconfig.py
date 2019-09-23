@@ -40,7 +40,7 @@ def run(args, remainder=None):
             recordBuildConfig["OLEVEL"] = args.olevel
         if args.osp_root:
             osp_root, _ = osppath.check_osp(args.osp_root)
-            recordBuildConfig["EMBARC_OSP_ROOT"] = osp_root.replace("\\", "/")
+            recordBuildConfig["EMBARC_ROOT"] = osp_root.replace("\\", "/")
         builder = build.embARC_Builder(osp_root, recordBuildConfig)
         build_config_template = builder.get_build_template()
         with cd(app_path):

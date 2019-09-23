@@ -41,7 +41,7 @@ def run(args, remainder=None):
     print_table([table_head, [table_content]])
 
     app_path = os.path.join(getcwd(), application)
-    config["EMBARC_OSP_ROOT"] = config["EMBARC_OSP_ROOT"].replace("\\", "/")
+    config["EMBARC_ROOT"] = config["EMBARC_ROOT"].replace("\\", "/")
     app_json_path = os.path.join(app_path, "embarc_app.json")
     mkdir(app_path)
     generate_json(config, app_json_path)
@@ -63,7 +63,7 @@ def run(args, remainder=None):
 
 def get_osp_root(input_root=None):
     if not input_root:
-        input_root = osppath.get_global("EMBARC_OSP_ROOT")
+        input_root = osppath.get_global("EMBARC_ROOT")
     if not input_root:
         print_string("Can't get osp root from global settings")
         current_record = osppath.list_path(show=True, current=None)
@@ -93,8 +93,8 @@ def get_osp_root(input_root=None):
                 print_string(msg, level="warning")
                 sys.exit(1)
         if global_name:
-            print_string("Set %s as global EMBARC_OSP_ROOT" % global_name)
-            config = "EMBARC_OSP_ROOT"
+            print_string("Set %s as global EMBARC_ROOT" % global_name)
+            config = "EMBARC_ROOT"
             osppath.set_global(config, global_name)
 
     if not osppath.is_osp(input_root):
@@ -134,7 +134,7 @@ def build_config(args):
         if not toolchain:
             toolchain = SUPPORT_TOOLCHAIN[0]
         config["TOOLCHAIN"] = toolchain
-        config["EMBARC_OSP_ROOT"] = os.path.abspath(osp_root)
+        config["EMBARC_ROOT"] = os.path.abspath(osp_root)
         return config
 
     if not application:
@@ -152,7 +152,6 @@ def build_config(args):
     cur_core = args.core
     toolchain = args.toolchain
     config = BUILD_CONFIG_TEMPLATE
-    config["EMBARC_OSP_ROOT"] = str()
     config = collections.OrderedDict()
     config["APPL"] = application
 
@@ -204,7 +203,7 @@ def build_config(args):
         else:
             break
     config["TOOLCHAIN"] = toolchain
-    config["EMBARC_OSP_ROOT"] = os.path.abspath(osp_root)
+    config["EMBARC_ROOT"] = os.path.abspath(osp_root)
     return config
 
 

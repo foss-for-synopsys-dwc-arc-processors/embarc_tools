@@ -110,7 +110,7 @@ class Ide(object):
     def _get_project_conf_template(self):
         cproject_template = self._get_cproject_template()
 
-        osp_root = self.buildopts["EMBARC_OSP_ROOT"]
+        osp_root = self.buildopts["EMBARC_ROOT"]
         self.ide["common"]["root"] = osp_root
         self.ide["common"]["folder"] = os.path.relpath(
             getcwd(), osp_root
@@ -118,7 +118,6 @@ class Ide(object):
 
         make_tool = "make"
         opt_command = [make_tool]
-        self.buildopts.update(EMBARC_ROOT=self.buildopts.pop("EMBARC_OSP_ROOT"))
         build_command_list = ["%s=%s" % (key, value) for (key, value) in self.buildopts.items()]
         self.ide["common"]["build_command"] = " ".join(build_command_list)
 

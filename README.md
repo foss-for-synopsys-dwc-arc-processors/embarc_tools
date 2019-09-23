@@ -62,11 +62,11 @@ $ pip uninstall embarc-cli
 ### Before you begin
 embARC CLI uses the user directory `Users/xxx/.embarc_cli` to save global settings. When you use embARC CLI, it will create two files:
 1. `Users/xxx/.embarc_cli/osp.json` including information about root paths of embARC OSP source code.
-2. `Users/xxx/.embarc_cli/global_config.json` including current global settings: `EMBARC_OSP_ROOT`,`TOOLCHAIN` and build configuration `BOARD`, `BD_VER` and `CUR_CORE`.
+2. `Users/xxx/.embarc_cli/global_config.json` including current global settings: `EMBARC_ROOT`,`TOOLCHAIN` and build configuration `BOARD`, `BD_VER` and `CUR_CORE`.
 ### Create a new application
 embARC CLI can create applications based on embARC Open Software Platform. A detailed command-specific help is available by using `embarc new --help`.
 
-When you create a new application, embARC CLI automatically imports the OSP from global settings if you haven't specify a OSP root path by `--osp_root`, if there is no `EMBARC_OSP_ROOT` in global settings, you need to input manually.
+When you create a new application, embARC CLI automatically imports the OSP from global settings if you haven't specify a OSP root path by `--osp_root`, if there is no `EMBARC_ROOT` in global settings, you need to input manually.
 
 The arguments for `build` are:
 
@@ -94,7 +94,7 @@ $ embarc new helloworld
 [embARC] Choose toolchain: gnu
 [embARC] Current configuration
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | EMBARC_OSP_ROOT                             | OLEVEL |
+| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | EMBARC_ROOT                             | OLEVEL |
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
 | helloworld | emsk  | 11     | arcem4   | gnu       | C:\Users\jingru\Documents\embarc\embarc_osp | O3     |
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
@@ -107,14 +107,14 @@ $ embarc new --quick
 [embARC] Current osp root is: C:/Users/jingru/Documents/embarc/embarc_osp
 [embARC] Current configuration
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | EMBARC_OSP_ROOT                             | OLEVEL |
+| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | EMBARC_ROOT                             | OLEVEL |
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
 | helloworld | emsk  | 23     | arcem7d  | gnu       | C:\Users\jingru\Documents\embarc\embarc_osp | O3     |
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
 [embARC] Start to generate makefile and main.c
 [embARC] Finish generate makefile and main.c, and they are in C:\Users\jingru\Documents\embarc\testcli\helloworld\helloworld
 ```
-<span class="tips">**Tip:** If you haven't set a global `EMBARC_OSP_ROOT`, it will raise `Can't get osp root from global setting`.
+<span class="tips">**Tip:** If you haven't set a global `EMBARC_ROOT`, it will raise `Can't get osp root from global setting`.
 When you create application with `embarc new`, it will generate a file `embarc_app.json` recording the parameters:
 ```
 {
@@ -123,7 +123,7 @@ When you create application with `embarc new`, it will generate a file `embarc_a
     "BD_VER": "23", 
     "CUR_CORE": "arcem7d", 
     "TOOLCHAIN": "gnu", 
-    "EMBARC_OSP_ROOT": "C:/Users/jingru/Documents/embarc/embarc_osp", 
+    "EMBARC_ROOT": "C:/Users/jingru/Documents/embarc/embarc_osp", 
     "OLEVEL": "O3"
 }
 ```
@@ -136,7 +136,7 @@ $ embarc build
 [embARC] Build target: all
 [embARC] Current configuration
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
+| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_ROOT                             |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
 | helloworld | emsk  | 23     | arcem7d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
@@ -169,7 +169,7 @@ $ embarc build run
 [embARC] Run command make info
 [embARC] Current configuration
 +--------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL   | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
+| APPL   | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_ROOT                             |
 +--------+-------+--------+----------+-----------+--------+---------------------------------------------+
 | rn4020 | iotdk | 10     | arcem9d  | mw        | O2     | C:/Users/jingru/Documents/embarc/embarc_osp |
 +--------+-------+--------+----------+-----------+--------+---------------------------------------------+
@@ -243,7 +243,7 @@ $ embarc build  --board iotdk --bd_ver 10 --core arcem9d --target all
 [embARC] Build target: all
 [embARC] Current configuration
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
+| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_ROOT                             |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
 | helloworld | iotdk | 10     | arcem9d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
@@ -275,7 +275,7 @@ $ embarc build BOARD=iotdk BD_VER=10 CUR_CORE=arcem9d clean
 [embARC] Build target: clean
 [embARC] Current configuration
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
+| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_ROOT                             |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
 | helloworld | iotdk | 10     | arcem9d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
@@ -300,7 +300,7 @@ $ embarc build  --export
 [embARC] Read embarc_app.json
 [embARC] Current configuration
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
+| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_ROOT                             |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
 | helloworld | iotdk | 10     | arcem9d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
@@ -340,16 +340,16 @@ The embARC CLI provides a flexible mechanism for configuring the embARC program.
 #### Global configuration
 Currently supported options: `osp`, `toolchain`, `build_cfg`. A detailed command-specific help is available by using `embarc config --help`.
 
-You can use `embarc config osp` to config the `EMBARC_OSP_ROOT`.
+You can use `embarc config osp` to config the `EMBARC_ROOT`.
 The commands for `embarc config osp` are:
 
-- `embarc config osp --add <name> <url/path> [<dest>]` to add `EMBARC_OSP_ROOT` to a global file `osp.json`. This file is save in current user folder. Parameter `<url/path>` can be: HTTPS URL, local path or zip file path.
-- `embarc config osp --rename <oldname> <newname>` to rename a `EMBARC_OSP_ROOT`.
+- `embarc config osp --add <name> <url/path> [<dest>]` to add `EMBARC_ROOT` to a global file `osp.json`. This file is save in current user folder. Parameter `<url/path>` can be: HTTPS URL, local path or zip file path.
+- `embarc config osp --rename <oldname> <newname>` to rename a `EMBARC_ROOT`.
 - `embarc config osp --remove <name>` to remove the path from `osp.json`.
 - `embarc config osp --list` to show all recorded paths.
-- `embarc config osp --set <name>` to set a path as global `EMBARC_OSP_ROOT`.
+- `embarc config osp --set <name>` to set a path as global `EMBARC_ROOT`.
 
-Add a `EMBARC_OSP_ROOT` for instance:
+Add a `EMBARC_ROOT` for instance:
 ```
 $ embarc config osp --add new_osp https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
 [embARC] Start clone embarc_osp
@@ -383,7 +383,7 @@ osp.json
     }
 }
 ```
-To see all recorded `EMBARC_OSP_ROOT`, run:
+To see all recorded `EMBARC_ROOT`, run:
 ```
 $ embarc config osp --list
   embarc_osp
@@ -401,7 +401,7 @@ $ embarc config osp --list
     source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
     type: git
 ```
-To rename a `EMBARC_OSP_ROOT`, run:
+To rename a `EMBARC_ROOT`, run:
 ```
 $ embarc config osp --rename embarc rename
 [embARC] Start rename embarc to rename
@@ -420,7 +420,7 @@ $ embarc config osp --rename embarc rename
     source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
     type: git
 ```
-To remove a `EMBARC_OSP_ROOT`, run:
+To remove a `EMBARC_ROOT`, run:
 ```
 $ embarc config osp --remove rename
 [embARC] Start remove rename
@@ -466,7 +466,7 @@ The arguments for `build` are:
 - `-t` or `--toolchain` to select toolchain. The value can be `gnu`(GNU) or `mw`(MetaWare).
 - `-j` or `--parallel` to compile code in parallel.
 - `--target` to select the build target, the default target is `all`, you can selsect one from `[elf, bin, hex, size, all]`.
-- `--osp_root` to select a path as `EMBARC_OSP_ROOT`.
+- `--osp_root` to select a path as `EMBARC_ROOT`.
 - `--olevel` to specify the `OLEVEL`.
 
 To see current application configuration, run:
@@ -483,7 +483,7 @@ $ embarc appconfig
 | BD_VER          | 10                                          |
 | CUR_CORE        | arcem9d                                     |
 | TOOLCHAIN       | gnu                                         |
-| EMBARC_OSP_ROOT | C:/Users/jingru/Documents/embarc/embarc_osp |
+| EMBARC_ROOT | C:/Users/jingru/Documents/embarc/embarc_osp |
 | OLEVEL          | O3                                          |
 +-----------------+---------------------------------------------+
 ```
@@ -501,7 +501,7 @@ $ embarc appconfig --board emsk --bd_ver 11 --cur_core arcem4
 | BD_VER          | 11                                          |
 | CUR_CORE        | arcem4                                      |
 | TOOLCHAIN       | gnu                                         |
-| EMBARC_OSP_ROOT | C:/Users/jingru/Documents/embarc/embarc_osp |
+| EMBARC_ROOT | C:/Users/jingru/Documents/embarc/embarc_osp |
 | OLEVEL          | O3                                          |
 +-----------------+---------------------------------------------+
 ```

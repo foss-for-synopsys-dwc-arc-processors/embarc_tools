@@ -47,7 +47,7 @@ class OSP(object):
         file = "global_config.json"
         config_file = os.path.join(self.path, file)
         global_config = dict()
-        global_config["EMBARC_OSP_ROOT"] = str()
+        global_config["EMBARC_ROOT"] = str()
         global_config["TOOLCHAIN"] = str()
         global_config["BUILD_CONFIG"] = dict()
         global_config["BUILD_CONFIG"]["BOARD"] = str()
@@ -101,7 +101,7 @@ class OSP(object):
             generate_json(self.cfg_dict, fl)
         path = path.replace("\\", "/")
         if not self.is_osp(path):
-            print_string("This is not a valid EMBARC_OSP_ROOT")
+            print_string("This is not a valid EMBARC_ROOT")
             return False
         try:
             self.cfg_dict = read_json(fl)
@@ -431,7 +431,7 @@ class OSP(object):
                 if line.startswith("EMBARC_ROOT"):
                     relative_root = (line.split("=")[1]).strip()
                     osp_root = os.path.normpath(os.path.join(os.getcwd(), relative_root))
-                    build_template["EMBARC_OSP_ROOT"] = osp_root
+                    build_template["EMBARC_ROOT"] = osp_root
                 if verbose:
                     if line.startswith("MID_SEL"):
                         build_template["middleware"] = (line.split("=")[1]).strip()

@@ -88,9 +88,9 @@ def run(args, remainder=None):
         args.list = True
     elif args.set:
         name = args.set
-        print_string("Set %s as global EMBARC_OSP_ROOT" % name)
+        print_string("Set %s as global EMBARC_ROOT" % name)
         if osppath.get_path(name):
-            config = "EMBARC_OSP_ROOT"
+            config = "EMBARC_ROOT"
             osppath.set_global(config, name)
         else:
             print_string("This is not a valid osp path")
@@ -109,10 +109,10 @@ def run(args, remainder=None):
         if makefile:
             if os.path.exists("embarc_app.json"):
                 app_setting = read_json("embarc_app.json")
-                current_osp = app_setting.get("EMBARC_OSP_ROOT", False)
+                current_osp = app_setting.get("EMBARC_ROOT", False)
             else:
                 _, app_setting = osppath.get_makefile_config(app_setting)
-                current_osp = app_setting.get("EMBARC_OSP_ROOT", False)
+                current_osp = app_setting.get("EMBARC_ROOT", False)
         if current_paths:
             osppath.list_path(show=True, current=current_osp)
 
@@ -124,7 +124,7 @@ def setup(subparsers):
     mutualex_group.add_argument(
         "--add", action='store_true', help='fetch the remote source code and add it to osp.json')
     mutualex_group.add_argument(
-        '-s', '--set', help="set a global EMBARC_OSP_ROOT, make sure you have added it to osp.json", metavar='')
+        '-s', '--set', help="set a global EMBARC_ROOT, make sure you have added it to osp.json", metavar='')
     mutualex_group.add_argument(
         "--rename", action='store_true', help="rename osp source code")
     mutualex_group.add_argument(

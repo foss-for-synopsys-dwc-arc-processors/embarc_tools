@@ -11,13 +11,11 @@ from ..builder import secureshield
 
 
 class embARC_Builder(object):
-    def __init__(self, osproot=None, buildopts=None, outdir=None, embarc_config="embarc_app.json"):
+    def __init__(self, osproot=None, buildopts=None, outdir=None, config_file="embarc_app.json"):
         self.buildopts = dict()
         make_options = ' '
         if osproot is not None and os.path.isdir(osproot):
             self.osproot = os.path.realpath(osproot)
-            self.buildopts["EMBARC_OSP_ROOT"] = self.osproot
-            # make_options += 'EMBARC_ROOT=' + str(self.osproot) + ' '
         else:
             self.osproot = None
         if outdir is not None:
@@ -29,7 +27,7 @@ class embARC_Builder(object):
         if buildopts is not None:
             self.buildopts.update(buildopts)
         self.make_options = make_options
-        self.embarc_config = embarc_config
+        self.config_file = config_file
 
     @staticmethod
     def is_embarc_makefile(app):
@@ -218,7 +216,6 @@ class embARC_Builder(object):
 
         def start_build(build_cmd, build_status=None):
             print_string("Start to build application")
-            return_code = 0
             time_pre = time.time()
             if coverity:
                 with cd(app_realpath):
@@ -231,28 +228,17 @@ class embARC_Builder(object):
                     else:
                         build_status["build_msg"] = ["Build Coverity successfully"]
             else:
-                if target not in ["opt", "info", "size", "all"]:
-                    with cd(app_realpath):
-                        try:
-                            return_code = os.system(build_cmd)
-                            if return_code == 0:
-                                build_status["build_msg"] = ["Build successfully"]
-                            else:
-                                build_status["build_msg"] = ["Build failed"]
-                                build_status['result'] = False
-                                build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
-                        except (KeyboardInterrupt):
-                            print_string("Terminate batch job", "warning")
-                            sys.exit(1)
-                else:
-                    try:
-                        build_proc = pqueryOutputinline(build_cmd, cwd=app, console=True)
-                        build_status['build_msg'] = build_proc
-                    except Exception as e:
-                        print("Run command({}) failed! {} ".format(build_cmd, e))
-                        build_status["build_msg"] = ["Build failed"]
-                        build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
-                        build_status['result'] = False
+                try:
+                    build_proc = pqueryOutputinline(build_cmd, cwd=app, console=True)
+                    build_status['build_msg'] = build_proc
+                except (KeyboardInterrupt):
+                    print_string("Terminate batch job", "warning")
+                    sys.exit(1)
+                except Exception as e:
+                    print("Run command({}) failed! {} ".format(build_cmd, e))
+                    build_status["build_msg"] = ["Build failed"]
+                    build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
+                    build_status['result'] = False
             build_status['time_cost'] = (time.time() - time_pre)
             return build_status
 
@@ -436,7 +422,6 @@ class embARC_Builder(object):
         return build_status
 
     def get_makefile_config(self, build_template=None):
-        # current_build_templates = dict()
         ospclass = osp.OSP()
         build_template["APPL"] = self.buildopts.get("APPL", False)
         build_template["BOARD"] = self.buildopts.get("BOARD", False)
@@ -444,22 +429,21 @@ class embARC_Builder(object):
         build_template["CUR_CORE"] = self.buildopts.get("CUR_CORE", False)
         build_template["TOOLCHAIN"] = self.buildopts.get("TOOLCHAIN", False)
         build_template["OLEVEL"] = self.buildopts.get("OLEVEL", False)
-        osp_root = self.buildopts.get("EMBARC_OSP_ROOT", False)
+        osp_root = self.buildopts.get("EMBARC_ROOT", False)
 
         if not all(build_template.values()):
             default_makefile_config = dict()
             _, default_makefile_config = ospclass.get_makefile_config(default_makefile_config)
             if not osp_root:
-                osp_root = default_makefile_config.get("EMBARC_OSP_ROOT")
+                osp_root = default_makefile_config.get("EMBARC_ROOT")
             for key, value in build_template.items():
                 if not value:
                     build_template[key] = default_makefile_config.get(key, False)
             self.buildopts.update(build_template)
 
-        osp_root, update = ospclass.check_osp(osp_root)
-        self.make_options += 'EMBARC_ROOT=' + str(osp_root) + ' '
-        self.buildopts["EMBARC_OSP_ROOT"] = osp_root
-        build_template["EMBARC_OSP_ROOT"] = osp_root
+        osp_root, _ = ospclass.check_osp(osp_root)
+        self.buildopts["EMBARC_ROOT"] = osp_root
+        build_template["EMBARC_ROOT"] = osp_root
 
         if not all(build_template.values()):
             try:
@@ -481,12 +465,9 @@ class embARC_Builder(object):
                 print_string("Error: {}".format(e))
                 sys.exit(1)
 
-        current_build_list = ["%s=%s" % (opt, build_template[opt]) for opt in BUILD_CONFIG_TEMPLATE.keys()]
-        self.make_options = self.make_options + " ".join(current_build_list)
-
-        self.buildopts.update(build_template)
-        generate_json(self.buildopts, self.embarc_config)
-
+        generate_json(self.buildopts, self.config_file)
+        current_build_list = ["%s=%s" % (key, value) for key, value in self.buildopts.items()]
+        self.make_options = " ".join(current_build_list) + self.make_options
         print_string("Current configuration ")
         table_head = list()
         table_content = list()
