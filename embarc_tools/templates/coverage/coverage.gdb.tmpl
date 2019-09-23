@@ -1,0 +1,23 @@
+file {{object_file}}
+{% if board == "nsim" %}
+tar extended-remote 127.0.0.1:1234
+{% else %}
+target remote | openocd --pipe -s  {{openocd}} -f {{openocd_cfg}}
+{% endif %}
+load {{object_file}}
+
+
+# The coverage exporting to the host
+b coverage.c:229
+commands 1
+    silent
+    set $filename = gcov_list->filename
+    set $dataBegin = buffer
+    set $dataEnd = buffer + size
+    eval "dump binary memory %s 0x%lx 0x%lx", $filename, $dataBegin, $dataEnd
+    printf "dump binary memory %s 0x%lx 0x%lx", $filename, $dataBegin, $dataEnd
+    echo \n
+    c
+end
+
+c

@@ -48,7 +48,12 @@ def run(args, remainder=None):
         if target:
             args.target = target
         recordBuildConfig.update(make_config)
-
+    if args.coverage:
+        if recordBuildConfig.get("BOARD", None) != "nsim" and not args.device_seria:
+            print("[embARC] Please set a right serial for accessing the board")
+            sys.exit(1)
+        else:
+            recordBuildConfig["EN_COVERAGE"] = 1
     builder = build.embARC_Builder(osproot, recordBuildConfig, args.outdir)
     if args.export:
         builder.get_build_cmd(app_path, target=None, parallel=parallel, silent=False)
@@ -92,6 +97,11 @@ def run(args, remainder=None):
         if information:
             if information.get("result") is False:
                 print("[embARC] Failed: {}".format(information.get("reason")))
+            else:
+                if args.coverage:
+                    print("[embARC] Start test code coverage")
+                    from ..builder import coverage
+                    coverage.run(app_path, builder.buildopts, args.outdir, args.device_serial)
 
 
 def setup(subparsers):
@@ -120,4 +130,7 @@ def setup(subparsers):
     subparser.add_argument(
         "--app_config", help="specify application configuration, default is to look for embarc_app.json", metavar='')
     subparser.set_defaults(func=run)
-
+    subparser.add_argument(
+        "--coverage", action="store_true", help="generate code coverage report")
+    subparser.add_argument(
+        "--device-serial", help="Serial device for accessing the board (e.g., /dev/ttyACM0)", metavar='')

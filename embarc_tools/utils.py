@@ -418,6 +418,7 @@ def pqueryTemporaryFile(command):
     del proc
     return returncode, rt_list
 
+
 def import_submodules(package, recursive=True):
     """ Import all submodules of a module, recursively, including subpackages
 
@@ -433,4 +434,3 @@ def import_submodules(package, recursive=True):
         elif recursive:
             results.update(import_submodules(full_name))
     return results
-

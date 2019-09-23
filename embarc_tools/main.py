@@ -3,11 +3,9 @@ from __future__ import print_function, unicode_literals
 import sys
 import argparse
 import os
-sys.path.append(os.path.dirname(__file__) + os.sep + '..')
-# embarc_tools is a top package
 from embarc_tools import embarc_subcommands
-from version import __version__
-from utils import import_submodules
+from embarc_tools.version import __version__
+from embarc_tools.utils import import_submodules
 
 
 SUBCOMMANDS = import_submodules(embarc_subcommands, recursive=False)
