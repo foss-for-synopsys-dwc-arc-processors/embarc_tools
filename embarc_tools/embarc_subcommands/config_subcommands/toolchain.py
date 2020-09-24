@@ -1,8 +1,14 @@
 from __future__ import print_function, division, unicode_literals
-from ...notify import print_string
+import sys
+import logging
 from ...settings import get_input, SUPPORT_TOOLCHAIN
 from ...osp import osp
 from ...toolchain import gnu, metaware
+from ...utils import read_json, generate_json
+
+logger = logging.getLogger("toolchain - gnu")
+logger.setLevel(logging.DEBUG)
+
 help = "Get, set toolchain configuration options."
 usage = ("\n    embarc config toolchain [--version] [--download] gnu\n"
          "    embarc config toolchain mw\n"
@@ -16,7 +22,7 @@ def run(args, remainder=None):
         toolchain = remainder[0]
         if toolchain == "gnu":
             if gnu_verion:
-                print_string("Current GNU verion: {}".format(gnu_verion))
+                logger.info("Current GNU verion: {}".format(gnu_verion))
             else:
                 toolchain_class = gnu.Gnu()
                 input_ = None
@@ -26,30 +32,31 @@ def run(args, remainder=None):
                     input_ = True
                 if input_ or args.download:
                     tgz_path = toolchain_class.download(version=args.version, path=args.download_path)
-                    print_string("Download it to : {}, please install it and set environment.".format(tgz_path))
+                    logger.info("Download it to : {}, please install it and set environment.".format(tgz_path))
                 else:
-                    print_string("You can get GNU Toolchain from (%s)" % (toolchain_class.root_url))
+                    logger.info("You can get GNU Toolchain from (%s)" % (toolchain_class.root_url))
 
         elif toolchain == "mw":
             if mw_verion:
-                print_string("Current MetaWare version: {}".format(mw_verion))
+                logger.info("Current MetaWare version: {}".format(mw_verion))
             else:
-                print_string("There is no MetaWare in this platform, please install it")
+                logger.info("There is no MetaWare in this platform, please install it")
         else:
-            print_string("This toolchain {} is not supported now".format(toolchain))
+            logger.error("This toolchain {} is not supported now".format(toolchain))
+            sys.exit(1)
     elif not remainder:
         if args.set:
             if args.set in SUPPORT_TOOLCHAIN:
-                print_string("Set %s as global TOOLCHAIN" % args.set)
-                osppath = osp.OSP()
-                osppath.set_global("TOOLCHAIN", args.set)
+                logger.info("Set %s as global TOOLCHAIN" % args.set)
+                global_cfg = read_json(osp.GLOBAL_CFG_FILE)
+                global_cfg["TOOLCHAIN"] = args.set
+                generate_json(global_cfg, osp.GLOBAL_CFG_FILE)
             else:
-                print_string("Only support GNU and MetaWare now")
+                logger.error("Only support GNU and MetaWare now")
         else:
-            print("usage: " + usage)
+            logger.error("usage: " + usage)
     else:
-        print("usage: " + usage)
-        return
+        logger.error("usage: " + usage)
 
 
 def setup(subparsers):

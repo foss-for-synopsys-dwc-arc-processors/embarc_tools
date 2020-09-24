@@ -10,11 +10,16 @@ except ImportError:
     from urllib2 import URLError
 import re
 import os
+import sys
+import logging
+import subprocess
 from bs4 import BeautifulSoup
 from distutils.spawn import find_executable
-from ..toolchain import ARCtoolchain, ProcessException
-from ..utils import download_file, extract_file, getcwd, mkdir, delete_dir_files, pquery
-from ..notify import print_string
+from ..toolchain import ARCtoolchain
+from ..utils import download_file, extract_file, getcwd, mkdir, delete_dir_files
+
+logger = logging.getLogger("toolchain - gnu")
+logger.setLevel(logging.DEBUG)
 
 
 class Gnu(ARCtoolchain):
@@ -31,28 +36,26 @@ class Gnu(ARCtoolchain):
 
     def __init__(self):
 
-        exe = find_executable(self.executable_name)
-        if exe:
-            self.path = os.path.split(exe)[0]
+        self.exe = find_executable(self.executable_name)
+        if self.exe:
+            self.path = os.path.split(self.exe)[0]
             self.version = self.check_version()
 
     @staticmethod
     def check_version():
-        '''run command "arc-elf32-gcc--version" and return current gnu version'''
+        '''run command "arc-elf32-gcc --version" and return current gnu version'''
         cmd = ["arc-elf32-gcc", "--version"]
         try:
-            exe = pquery(cmd)
-            if exe is None:
-                msg = "can not execute {}".format(cmd[0])
-                print_string(msg, level="warning")
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            if output is None:
+                logger.waring("can not execute {}".format(cmd[0]))
                 return None
-            version = re.search(r"[0-9]*\.[0-9]*", exe).group(0)
+            version = re.search(r"[0-9]*\.[0-9]*", output.decode("utf-8")).group(0)
             if version:
                 return version
-        except ProcessException:
-            return None
-        except AttributeError:
-            return None
+        except subprocess.CalledProcessError as ex:
+            logger.error("Fail to run command {}".format(cmd))
+            sys.exit(ex.output.decode("utf-8"))
 
     def _set_version(self):
         '''get current gnu version and set the self.version'''
@@ -82,14 +85,13 @@ class Gnu(ARCtoolchain):
         if not os.path.exists(path):
             mkdir(path)
         if pack_tgz in os.listdir(path):
-            print_string("GNU tgz already exists")
+            logger.info("GNU tgz already exists")
         else:
-            print_string("Download from (%s)" % url)
+            logger.info("Download from (%s)" % url)
             result = download_file(url, gnu_tgz_path)
             if not result:
-                msg = "Download gnu failed"
-                print_string(msg, level="error")
-                gnu_tgz_path = None
+                logger.error("Download gnu failed")
+                sys.exit(1)
         self.pack = gnu_tgz_path
         return gnu_tgz_path
 
@@ -103,8 +105,7 @@ class Gnu(ARCtoolchain):
         if path is None:
             path = getcwd()
         if pack is None:
-            msg = "Please download gnu file first"
-            print_string(msg, level="warning")
+            logger.warning("Please download gnu file first")
             return False
 
         else:
@@ -128,11 +129,11 @@ class Gnu(ARCtoolchain):
             response = urlopen(request)
             content = response.read().decode('utf-8')
 
-            div_bf = BeautifulSoup(content)
+            div_bf = BeautifulSoup(content, features="html.parser")
             items = div_bf.find_all('div', class_='Box Box--condensed mt-3')
             latesturl = None
             if items:
-                a_bf = BeautifulSoup(str(items[0]))
+                a_bf = BeautifulSoup(str(items[0]), features="html.parser")
                 a_items = a_bf.find_all('a', class_='d-flex flex-items-center min-width-0')
                 for a_item in a_items:
                     a_url = a_item.get('href')
@@ -142,8 +143,8 @@ class Gnu(ARCtoolchain):
                 return latesturl
         except URLError as e:
             if hasattr(e, "code"):
-                print_string(e, level="warning")
+                logger.warning(e)
             if hasattr(e, "reason"):
-                print_string(e.reason, level="warning")
+                logger.warning(e.reason)
         else:
-            print_string("Can not get latest veriosn Gnu")
+            logger.warning("Can not get latest veriosn Gnu")

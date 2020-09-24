@@ -70,9 +70,9 @@ When you create a new application, embARC CLI automatically imports the OSP from
 
 The arguments for `build` are:
 
-- `-d` or `--path` to specify the path of the application.
+- `-d` or `--directory` to specify the path of the application.
 - `-b` or `--board` to select a board.
-- `--bd_ver` to select a board_ver.
+- `--bd-ver` to select a board_ver.
 - `--core` to select a core.
 - `-t` or `--toolchain` to select a toolchain. The value can be `gnu`(GNU) or `mw`(MetaWare).
 - `-j` or `--parallel` to compile code in parallel.
@@ -101,19 +101,7 @@ $ embarc new helloworld
 [embARC] Start to generate makefile and main.c
 [embARC] Finish generate makefile and main.c, and they are in C:\Users\jingru\Documents\embarc\testcli\helloworld
 ```
-If you want to create an application quickly, you can use `--quick`, it can create application with current global settings.
-```
-$ embarc new --quick
-[embARC] Current osp root is: C:/Users/jingru/Documents/embarc/embarc_osp
-[embARC] Current configuration
-+------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | EMBARC_OSP_ROOT                             | OLEVEL |
-+------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-| helloworld | emsk  | 23     | arcem7d  | gnu       | C:\Users\jingru\Documents\embarc\embarc_osp | O3     |
-+------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-[embARC] Start to generate makefile and main.c
-[embARC] Finish generate makefile and main.c, and they are in C:\Users\jingru\Documents\embarc\testcli\helloworld\helloworld
-```
+
 <span class="tips">**Tip:** If you haven't set a global `EMBARC_OSP_ROOT`, it will raise `Can't get osp root from global setting`.
 When you create application with `embarc new`, it will generate a file `embarc_app.json` recording the parameters:
 ```
@@ -238,7 +226,7 @@ state: READY
 You can specify parameters in two ways:
 1. Use `--xxx`:
 ```
-$ embarc build  --board iotdk --bd_ver 10 --core arcem9d --target all
+$ embarc build  --board iotdk --bd-ver 10 --core arcem9d --target all
 [embARC] Read embarc_app.json
 [embARC] Build target: all
 [embARC] Current configuration
@@ -461,7 +449,7 @@ The arguments for `build` are:
 
 - `-a` or `--application` to specify the path of the application.
 - `-b` or `--board` to select a board.
-- `--bd_ver` to select a board_ver.
+- `--bd-ver` to select a board_ver.
 - `--cur_core` to select a core.
 - `-t` or `--toolchain` to select toolchain. The value can be `gnu`(GNU) or `mw`(MetaWare).
 - `-j` or `--parallel` to compile code in parallel.
@@ -489,7 +477,7 @@ $ embarc appconfig
 ```
 To change current application configuration. For example, update configuration to `BOARD=emsk BD_VER=11 CUR_CORE=arcem4`, run:
 ```
-$ embarc appconfig --board emsk --bd_ver 11 --cur_core arcem4
+$ embarc appconfig --board emsk --bd-ver 11 --cur_core arcem4
 [embARC] Read makefile and get configuration
 [embARC] Read embarc_config.json
 [embARC] Current configuraion

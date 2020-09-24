@@ -37,10 +37,11 @@ setup(
     install_requires=[
         'PyYAML',
         'colorama',
-        'PrettyTable',
         'Jinja2',
         'beautifulsoup4',
-        'GitPython'
+        'GitPython',
+        'pyelftools',
+        'psutil'
     ],
 
     include_package_data = True,

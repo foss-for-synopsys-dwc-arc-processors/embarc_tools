@@ -10,10 +10,6 @@ TOOLCHAIN_PATHS = {
 }
 
 
-class ProcessException(Exception):
-    pass
-
-
 class ARCtoolchain(object):
 
     def __init__():

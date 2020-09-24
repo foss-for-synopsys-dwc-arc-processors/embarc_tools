@@ -6,5 +6,4 @@ from embarc_tools.utils import cd
 def test_new_commands(tmpdir, get_osp):
 	testdir = tmpdir.mkdir("test")
 	with cd(testdir.strpath):
-		runcmd([ "new", "--board", "emsk", "--bd_ver", "22", "--core", "arcem7d", "--toolchain", "gnu", "hello"])
-		runcmd([ "new", "--quick"])
+		runcmd([ "new", "--board", "emsk", "--bd-ver", "22", "--core", "arcem7d", "--toolchain", "gnu", "hello"])

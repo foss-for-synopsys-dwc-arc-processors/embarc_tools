@@ -1,11 +1,14 @@
 from __future__ import print_function, unicode_literals
 import os
+import sys
 from datetime import datetime as dt
 import contextlib
 from ..utils import delete_dir_files, read_json
-from ..exporter import Exporter
-from ..notify import print_string
+from ..generator import Exporter
+import logging
 
+logger = logging.getLogger("Builder - secureshield")
+logger.setLevel(logging.DEBUG)
 
 CONFIG_PATH = 'secureshield_appl_config.json'
 CONTAIN_CONFIG_PATH = 'container_cfg.c'
@@ -75,7 +78,7 @@ def common_check(toolchain, board, app_path):
     config = None
     board_config = None
     if toolchain != 'gnu' and toolchain != 'mw':
-        print_string("please set a valid toolchain")
+        logger.error("please set a valid toolchain")
         sys.exit(1)
     sec_config_path = os.path.join(app_path, CONFIG_PATH)
     if os.path.exists(sec_config_path):
@@ -88,8 +91,8 @@ def common_check(toolchain, board, app_path):
     if board_config is None:
         return False
     elif check_config(board_config) is False:
-        print_string("please check the application config")
-        print_string("exit application configuration generator")
+        logger.error("please check the application config")
+        logger.error("exit application configuration generator")
         return False
     return board_config
 

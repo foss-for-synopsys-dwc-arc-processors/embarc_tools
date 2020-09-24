@@ -3,12 +3,15 @@ from __future__ import print_function, unicode_literals
 import sys
 import argparse
 import os
+import logging
 sys.path.append(os.path.dirname(__file__) + os.sep + '..')
 # embarc_tools is a top package
 from embarc_tools import embarc_subcommands
-from version import __version__
-from utils import import_submodules
+from embarc_tools.version import __version__
+from embarc_tools.utils import import_submodules
 
+logger = logging.getLogger("main")
+logging.basicConfig(level=logging.INFO)
 
 SUBCOMMANDS = import_submodules(embarc_subcommands, recursive=False)
 ver = __version__
@@ -37,19 +40,6 @@ def main():
 
     subcommand = SUBCOMMANDS.keys()
 
-    # setup parsers for commands
-    # for key in subcommand:
-    #     subparser = subparsers.add_parser(key, help=SUBCOMMANDS[key].help, description=SUBCOMMANDS[key].description)
-    #     if key == "config":
-    #         config_subparsers = subparser.add_subparsers(title="Commands", metavar="           ")
-    #         for name, module in CONFIG_SUBCOMMANDS.items():
-    #             cfg_subparser = config_subparsers.add_parser(name, help=module.help)
-    #             module.setup(cfg_subparser)
-    #             cfg_subparser.set_defaults(func=module.run)
-
-    #     SUBCOMMANDS[key].setup(subparser)
-    #     subparser.set_defaults(func=SUBCOMMANDS[key].run)
-
     args = None
     if len(sys.argv) == 1:
         return parser.print_help()
@@ -57,7 +47,8 @@ def main():
     args, remainder = parser.parse_known_args()
     try:
         return args.func(args, remainder)
-    except Exception:
+    except Exception as e:
+        logger.info(e)
         return parser.print_help()
 
 
@@ -65,5 +56,5 @@ if __name__ == '__main__':
     try:
         main()
     except (KeyboardInterrupt):
-        print("Terminate batch job")
+        logger.info("Terminate batch job")
         sys.exit(255)

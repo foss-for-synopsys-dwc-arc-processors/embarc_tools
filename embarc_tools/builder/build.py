@@ -1,505 +1,451 @@
-from __future__ import print_function, unicode_literals
 import sys
 import os
+import glob
+import re
+import random
+import psutil
+import signal
+import logging
 import time
-import collections
-from ..settings import BUILD_CONFIG_TEMPLATE, BUILD_OPTION_NAMES, BUILD_INFO_NAMES, BUILD_CFG_NAMES, BUILD_SIZE_SECTION_NAMES, get_config, MAKEFILENAMES
-from ..utils import mkdir, delete_dir_files, cd, generate_json, pqueryOutputinline, pqueryTemporaryFile
-from ..notify import (print_string, print_table)
-from ..osp import osp
+import threading
+import subprocess
+from elftools.elf.elffile import ELFFile
+from distutils.spawn import find_executable
+from ..settings import MAKEFILENAMES, is_embarc_makefile, is_embarc_base
+from ..utils import delete_dir_files, generate_json, read_json
+from ..osp import platform
 from ..builder import secureshield
+from ..generator import Exporter
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("builder")
 
 
 class embARC_Builder(object):
-    def __init__(self, osproot=None, buildopts=None, outdir=None, embarc_config="embarc_app.json"):
-        self.buildopts = dict()
-        make_options = ' '
-        if osproot is not None and os.path.isdir(osproot):
-            self.osproot = os.path.realpath(osproot)
-            self.buildopts["EMBARC_OSP_ROOT"] = self.osproot
-            # make_options += 'EMBARC_ROOT=' + str(self.osproot) + ' '
-        else:
-            self.osproot = None
-        if outdir is not None:
-            self.outdir = os.path.realpath(outdir)
-            make_options += 'OUT_DIR_ROOT=' + str(self.outdir) + ' '
-        else:
-            self.outdir = None
+    def __init__(self, source_dir, build_dir,
+                 board=None, board_version=None,
+                 core=None, toolchain=None,
+                 embarc_root=None,
+                 buildopts=None,
+                 embarc_config=None):
+        self.name = None
+        self.source_dir = source_dir
+        self.build_dir = build_dir
+        self.embarc_root = embarc_root
 
-        if buildopts is not None:
-            self.buildopts.update(buildopts)
-        self.make_options = make_options
+        self.platform = platform.Platform(board, board_version, core)
+        self.toolchain = toolchain
+
+        self.secureshield_config = None
+
+        self.target = None
+
+        self.extra_build_opt = buildopts
+
+        self.cache_configs = dict()
+
         self.embarc_config = embarc_config
+        self.log = "build.log"
+        self.returncode = None
+        self.terminated = False
+        self.status = "na"
 
-    @staticmethod
-    def is_embarc_makefile(app):
-        with open(app) as f:
-            embarc_root = False
-            appl = False
-            lines = f.read().splitlines()
-            for line in lines:
-                if "EMBARC_ROOT" in line:
-                    embarc_root = True
-                if "APPL" in line:
-                    appl = True
-                if embarc_root and appl:
-                    return True
-            return False
+    def find_platform(self):
+        if not self.platform.name:
+            if self.cache_configs.get("BOARD", None):
+                self.platform.name = self.cache_configs["BOARD"]
+        if not self.platform.name:
+            if not self.embarc_root:
+                logger.error("unable to determine a supported board")
+                sys.exit(1)
+            else:
+                for file in glob.glob(os.path.join(self.embarc_root, "board", "*", "*.mk")):
+                    try:
+                        self.platform.name = os.path.splitext(os.path.basename(file))[0]
+                        break
+                    except RuntimeError as e:
+                        logger.error("E: failed to find a board. %s" % e)
+        if not self.platform.version:
+            if self.cache_configs.get("BD_VER", None):
+                self.platform.version = self.cache_configs["BD_VER"]
+        if not self.platform.version:
+            self.platform.version = self.platform.get_versions(self.source_dir, self.embarc_root)[0]
+        if not self.platform.core:
+            if self.cache_configs.get("CUR_CORE", None):
+                self.platform.core = self.cache_configs["CUR_CORE"]
+        if not self.platform.core:
+            self.platform.core = self.platform.get_cores(self.platform.version, self.source_dir, self.embarc_root)[0]
+        logger.info("platform: {}".format(self.platform))
+        self.cache_configs["BOARD"] = self.platform.name
+        self.cache_configs["BD_VER"] = self.platform.version
+        self.cache_configs["CUR_CORE"] = self.platform.core
 
-    @staticmethod
-    def build_common_check(app):
-        build_status = {'result': True, 'reason': ''}
-        app_normpath = os.path.normpath(app)
+    def check_source_dir(self):
+        app_normpath = os.path.abspath(self.source_dir)
         if not os.path.isdir(app_normpath):
-            build_status['reason'] = 'Application folder doesn\'t exist!'
-            build_status['result'] = False
+            logger.error(f"Cannot find folder {app_normpath}")
+            sys.exit(1)
         current_makefile = None
         for makename in MAKEFILENAMES:
             if makename in os.listdir(app_normpath):
                 current_makefile = os.path.join(app_normpath, makename)
                 break
         if not current_makefile:
-            build_status['reason'] = 'Application makefile donesn\'t exist!'
-            build_status['result'] = False
+            logger.error("Cannot find makefile")
+            sys.exit(1)
         else:
-            if not embARC_Builder.is_embarc_makefile(current_makefile):
-                build_status['reason'] = 'Application makefile is invalid!'
-                build_status['result'] = False
-
-        app_realpath = os.path.realpath(app_normpath)
-        build_status['app_path'] = app_realpath
-
-        return app_realpath, build_status
-
-    def configCoverity(self, toolchain):
-        print_string("Config coverity")
-        build_status = {'result': True, 'reason': ''}
-        self.coverity_comptype = 'gcc'
-        self.coverity_compiler = 'arc-elf32-gcc'
-        if toolchain == "gnu":
-            pass
-        elif toolchain == "mw":
-            self.coverity_comptype = 'clangcc'
-            self.coverity_compiler = 'ccac'
-        else:
-            build_status["result"] = False
-            build_status["reason"] = "Toolchian is not supported!"
-            return build_status
-        self.coverity_sa_version = os.environ.get("COVERITY_SA_VERSION", None)
-        self.coverity_server = os.environ.get("COVERITY_SERVER", None)
-        self.user = os.environ.get("AUTO_USER", None)
-        self.password = os.environ.get("AUTO_PASSWORD", None)
-        self.coverity_steam_pre = os.environ.get("COVERITY_STREAM_PRE", None)
-        return build_status
-
-    def _setCoverityDirs(self, app):
-        app_path_list = app.split("/")
-        self.coverity_steam = self.coverity_steam_pre + "_".join(app_path_list[1:])
-        # print_string("The coverity stream: {} {} {} ".format(self.coverity_steam))
-        self.coverity_data_dir = os.environ.get("COVERITY_DATA_DIR", "coverity-data")
-        self.coverity_config = os.path.join(self.coverity_data_dir, "coverity-config.xml")
-        self.coverity_html = "coverity_html"
-        if os.path.exists(self.coverity_data_dir):
-            delete_dir_files(self.coverity_data_dir, dir=True)
-            mkdir(self.coverity_data_dir)
-        if os.path.exists(self.coverity_html):
-            delete_dir_files(self.coverity_html, dir=True)
-
-    def build_coverity(self, make_cmd):
-        build_status = {'result': True, 'reason': ''}
-        print_string("BEGIN SECTION Configure Coverity to use the built-incompiler")
-        config_compilercmd = "cov-configure --config {} --template --comptype {} --compiler {}".format(
-            self.coverity_config,
-            self.coverity_comptype, self.coverity_compiler
-        )
-        returncode = os.system(config_compilercmd)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = "Configure Coverity Failed!"
-            return build_status
-
-        print_string("BEGIN SECTION Build with Coverity {}".format(self.coverity_sa_version))
-        coverity_build = "cov-build --config %s --dir %s %s" % (self.coverity_config, self.coverity_data_dir, make_cmd)
-        try:
-            build_proc = pqueryOutputinline(coverity_build, console=True)
-            build_status['build_msg'] = build_proc
-        except Exception as e:
-            build_status["result"] = False
-            build_status["reason"] = "Build with Coverity Failed! {}".format(e)
-            return build_status
-
-        print_string("BEGIN SECTION Coverity Analyze Defects")
-        coverity_analyze = "cov-analyze --dir {}".format(self.coverity_data_dir)
-        returncode = os.system(coverity_analyze)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = "Coverity Analyze Defects Failed!"
-            return build_status
-
-        print_string("BEGIN SECTION Coverity Format Errors into HTML")
-        coverity_errors = "cov-format-errors --dir %s -x -X --html-output %s" % (self.coverity_data_dir, self.coverity_html)
-        returncode = os.system(coverity_errors)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = "Coverity Format Errors into HTML Failed!"
-            return build_status
-
-        print_string("BEGIN SECTION Coverity Commit defects to {} steam {}".format(self.coverity_server, self.coverity_steam))
-        coverity_commit = "cov-commit-defects --dir %s --host %s --stream %s --user %s --password %s" % (
-            self.coverity_data_dir,
-            self.coverity_server, self.coverity_steam, self.user, self.password
-        )
-        returncode = os.system(coverity_commit)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = "Coverity Commit defects Failed!"
-            return build_status
-
-        '''print_string("BEGIN SECTION Coverity Send E-mail Notifications")
-        coverity_manage = "cov-manage-im --mode notification --execute --view 'Default' --host %s --user %s --password %s" % (
-            self.coverity_server,
-            self.user, self.password
-        )
-        returncode = os.system(coverity_manage)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = " Coverity Send E-mail Notifications Failed!"
-            return build_status'''
-
-        return build_status
-
-    def get_build_cmd(self, app, target=None, parallel=8, silent=False):
-        build_status = dict()
-        build_precmd = "make "
-        if parallel:
-            build_precmd = "{} -j {}".format(build_precmd, str(parallel))
-
-        if target != "info":
-            build_config_template = self.get_build_template()
-            with cd(app):
-                self.get_makefile_config(build_config_template)
-        build_precmd = "{} {}".format(build_precmd, self.make_options)
-        if silent:
-            if "SILENT=1" not in build_precmd:
-                build_precmd = "{} SILENT=1 ".format(build_precmd)
-        if isinstance(target, str) or target is not None:
-            build_cmd = build_precmd + " " + str(target)
-        else:
-            build_status['reason'] = "Unrecognized build target"
-            build_status['result'] = False
-            return build_status
-        build_cmd_list = build_cmd.split()
-        for i in range(len(build_cmd_list)):
-            if build_cmd_list[i].startswith("EMBARC_ROOT"):
-                build_cmd_list[i] = "EMBARC_ROOT=" + self.osproot
-                break
-        build_cmd = " ".join(build_cmd_list)
-        print_string("Build command: {} ".format(build_cmd))
-        build_status['build_cmd'] = build_cmd
-        return build_status
-
-    def build_target(self, app, target=None, parallel=8, coverity=False, silent=False):
-        app_realpath, build_status = self.build_common_check(app)
-        build_status['build_target'] = target
-        build_status['time_cost'] = 0
-        print_string("Build target: {} " .format(target))
-
-        if not build_status['result']:
-            return build_status
-
-        # Check and create output directory
-        if (self.outdir is not None) and (not os.path.isdir(self.outdir)):
-            print_string("Create application output directory: " + self.outdir)
-            os.makedirs(self.outdir)
-
-        current_build_cmd = self.get_build_cmd(app_realpath, target, parallel, silent)
-        build_status.update(current_build_cmd)
-        build_cmd = build_status.get('build_cmd', None)
-
-        def start_build(build_cmd, build_status=None):
-            print_string("Start to build application")
-            return_code = 0
-            time_pre = time.time()
-            if coverity:
-                with cd(app_realpath):
-                    self._setCoverityDirs(app)
-                    coverity_build_status = self.build_coverity(build_cmd)
-                    if not coverity_build_status["result"]:
-                        build_status["result"] = False
-                        build_status["reason"] = coverity_build_status["reason"]
-                        build_status["build_msg"] = coverity_build_status["build_msg"]
-                    else:
-                        build_status["build_msg"] = ["Build Coverity successfully"]
-            else:
-                if target not in ["opt", "info", "size", "all"]:
-                    with cd(app_realpath):
-                        try:
-                            return_code = os.system(build_cmd)
-                            if return_code == 0:
-                                build_status["build_msg"] = ["Build successfully"]
-                            else:
-                                build_status["build_msg"] = ["Build failed"]
-                                build_status['result'] = False
-                                build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
-                        except (KeyboardInterrupt):
-                            print_string("Terminate batch job", "warning")
-                            sys.exit(1)
-                else:
-                    try:
-                        build_proc = pqueryOutputinline(build_cmd, cwd=app, console=True)
-                        build_status['build_msg'] = build_proc
-                    except Exception as e:
-                        print("Run command({}) failed! {} ".format(build_cmd, e))
-                        build_status["build_msg"] = ["Build failed"]
-                        build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
-                        build_status['result'] = False
-            build_status['time_cost'] = (time.time() - time_pre)
-            return build_status
-
-        secureshield_config = secureshield.common_check(
-            self.buildopts["TOOLCHAIN"], self.buildopts["BOARD"], app_realpath)
-        if secureshield_config:
-            with secureshield.secureshield_appl_cfg_gen(self.buildopts["TOOLCHAIN"], secureshield_config, app_realpath):
-                build_cmd_list = build_cmd.split()
-                target = build_cmd_list[-1]
-                build_cmd_list[-1] = "USE_SECURESHIELD_APPL_GEN=1"
-                build_cmd_list.append(target)
-                build_cmd = " ".join(build_cmd_list)
-                build_status = start_build(build_cmd, build_status)
-        else:
-            build_status = start_build(build_cmd, build_status)
-        print_string("Completed in: ({})s  ".format(build_status['time_cost']))
-        return build_status
-
-    def get_build_info(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('opt'), parallel=parallel)
-        if not build_status['result']:
-            return build_status
-
-        build_cfg = dict()
-        cfg_lines = build_status['build_msg']
-
-        for cfg_line in cfg_lines:
-            words = cfg_line.split(':')
-            if len(words) == 2:
-                key = words[0].strip()
-                value = words[1].strip()
-                if key in BUILD_CFG_NAMES or key in BUILD_OPTION_NAMES:
-                    build_cfg[key] = value
-
-        build_status['build_cfg'] = build_cfg
-
-        # Get Build Info
-        info_status = self.build_target(app, target=str('info'))
-        build_out = info_status['build_msg']
-        build_info = dict()
-        if info_status['result']:
-            for info_line in build_out:
-                words = info_line.split(':')
-                if len(words) == 2:
-                    key = words[0].strip()
-                    value = words[1].strip()
-                    if key in BUILD_INFO_NAMES:
-                        build_info[key] = value
-                    if key == 'BUILD_OPTION':
-                        build_cfgs_dict = value.split()
-                        for cfg_dict in build_cfgs_dict:
-                            cfg_pair = cfg_dict.split('=')
-                            if len(cfg_pair) == 2 and cfg_pair[0] in BUILD_OPTION_NAMES:
-                                build_status['build_cfg'][cfg_pair[0]] = cfg_pair[1]
-                    if key == 'MIDDLEWARE' or key == 'PERIPHERAL':
-                        build_info[key + 'S'] = value.split()
-                    if key == 'APPLICATION_ELF':
-                        build_info['APPLICATION_OUTDIR'] = os.path.dirname(value)
-        build_status['build_info'] = build_info
-
-        app_realpath = build_status['app_path']
-        if 'EMBARC_ROOT' in build_status['build_cfg']:
-            if not os.path.isabs((build_status['build_cfg']['EMBARC_ROOT'])):
-                build_status['build_cfg']['EMBARC_ROOT'] = os.path.realpath(os.path.join(app_realpath, build_status['build_cfg']['EMBARC_ROOT']))
-        if 'OUT_DIR_ROOT' in build_status['build_cfg']:
-            if not os.path.isabs(build_status['build_cfg']['OUT_DIR_ROOT']):
-                build_status['build_cfg']['OUT_DIR_ROOT'] = os.path.realpath(os.path.join(app_realpath, build_status['build_cfg']['OUT_DIR_ROOT']))
-        if 'OUT_DIR_ROOT' in build_status['build_info']:
-            if not os.path.isabs(build_status['build_info']['OUT_DIR_ROOT']):
-                build_status['build_info']['OUT_DIR_ROOT'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['OUT_DIR_ROOT']))
-        if 'APPLICATION_ELF' in build_status['build_info']:
-            if not os.path.isabs(build_status['build_info']['APPLICATION_ELF']):
-                build_status['app_elf'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['APPLICATION_ELF']))
-            else:
-                build_status['app_elf'] = build_status['build_info']['APPLICATION_ELF']
-        if 'APPLICATION_HEX' in build_status['build_info']:
-            if not os.path.isabs(build_status['build_info']['APPLICATION_HEX']):
-                build_status['app_hex'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['APPLICATION_HEX']))
-            else:
-                build_status['app_hex'] = build_status['build_info']['APPLICATION_HEX']
-        if 'APPLICATION_BIN' in build_status['build_info']:
-            if not os.path.isabs(build_status['build_info']['APPLICATION_BIN']):
-                build_status['app_bin'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['APPLICATION_BIN']))
-            else:
-                build_status['app_bin'] = build_status['build_info']['APPLICATION_BIN']
-        if 'APPLICATION_OUTDIR' in build_status['build_info']:
-            if not os.path.isabs(build_status['build_info']['APPLICATION_OUTDIR']):
-                build_status['app_outdir'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['APPLICATION_OUTDIR']))
-            else:
-                build_status['app_outdir'] = build_status['build_info']['APPLICATION_OUTDIR']
-
-        return build_status
-
-    def build_elf(self, app, parallel=False, pre_clean=False, post_clean=False, silent=False):
-        # Clean Application before build if requested
-        if pre_clean:
-            build_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not build_status['result']:
-                return build_status
-
-        # Build Application
-        build_status = self.build_target(app, parallel=parallel, target=str('all'), silent=silent)
-        if not build_status['result']:
-            return build_status
-        # Clean Application after build if requested
-        if post_clean:
-            clean_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not clean_status['result']:
-                return clean_status
-
-        return build_status
-
-    def build_bin(self, app, parallel=False, pre_clean=False, post_clean=False):
-        # Clean Application before build if requested
-        if pre_clean:
-            build_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not build_status['result']:
-                return build_status
-
-        # Build Application
-        build_status = self.build_target(app, parallel=parallel, target=str('bin'))
-        if not build_status['result']:
-            return build_status
-        # Clean Application after build if requested
-        if post_clean:
-            clean_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not clean_status['result']:
-                return clean_status
-
-        return build_status
-
-    def build_hex(self, app, parallel=False, pre_clean=False, post_clean=False):
-        # Clean Application before build if requested
-        if pre_clean:
-            build_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not build_status['result']:
-                return build_status
-
-        # Build Application
-        build_status = self.build_target(app, parallel=parallel, target=str('hex'))
-        if not build_status['result']:
-            return build_status
-        # Clean Application after build if requested
-        if post_clean:
-            clean_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not clean_status['result']:
-                return clean_status
-
-        return build_status
-
-    def get_build_size(self, app, parallel=False, silent=False):
-        build_status = self.build_target(app, parallel=parallel, target=str('size'), silent=silent)
-        build_size = dict()
-        if build_status['result']:
-            app_size_lines = build_status['build_msg']
-            len_app_size_lines = len(app_size_lines)
-            if len_app_size_lines >= 3:
-                app_size_lines = app_size_lines[len_app_size_lines - 2:]
-                section_names = app_size_lines[0].split()
-                section_values = app_size_lines[1].split()
-                for idx, section_name in enumerate(section_names):
-                    if section_name in BUILD_SIZE_SECTION_NAMES:
-                        build_size[section_name] = int(section_values[idx])
-            else:
-                build_status['result'] = False
-        else:
-            print_string("Build failed and there is no size information")
-        build_status['build_size'] = build_size
-        return build_status
-
-    def clean(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('clean'), parallel=parallel)
-        return build_status
-
-    def distclean(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('distclean'), parallel=parallel)
-        return build_status
-
-    def boardclean(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('boardclean'), parallel=parallel)
-        return build_status
-
-    def get_makefile_config(self, build_template=None):
-        # current_build_templates = dict()
-        ospclass = osp.OSP()
-        build_template["APPL"] = self.buildopts.get("APPL", False)
-        build_template["BOARD"] = self.buildopts.get("BOARD", False)
-        build_template["BD_VER"] = self.buildopts.get("BD_VER", False)
-        build_template["CUR_CORE"] = self.buildopts.get("CUR_CORE", False)
-        build_template["TOOLCHAIN"] = self.buildopts.get("TOOLCHAIN", False)
-        build_template["OLEVEL"] = self.buildopts.get("OLEVEL", False)
-        osp_root = self.buildopts.get("EMBARC_OSP_ROOT", False)
-
-        if not all(build_template.values()):
-            default_makefile_config = dict()
-            _, default_makefile_config = ospclass.get_makefile_config(default_makefile_config)
-            if not osp_root:
-                osp_root = default_makefile_config.get("EMBARC_OSP_ROOT")
-            for key, value in build_template.items():
-                if not value:
-                    build_template[key] = default_makefile_config.get(key, False)
-            self.buildopts.update(build_template)
-
-        osp_root, update = ospclass.check_osp(osp_root)
-        self.make_options += 'EMBARC_ROOT=' + str(osp_root) + ' '
-        self.buildopts["EMBARC_OSP_ROOT"] = osp_root
-        build_template["EMBARC_OSP_ROOT"] = osp_root
-
-        if not all(build_template.values()):
-            try:
-                returncode, cmd_output = pqueryTemporaryFile(["make", "EMBARC_ROOT=" + str(osp_root), "info"])
-                default_build_option = None
-                if not returncode and cmd_output:
-                    for line in cmd_output:
-                        if line.startswith("BUILD_OPTION"):
-                            default_build_option = str(line.split(":", 1)[1]).split()
-                            break
-                        else:
-                            pass
-                    default_build_option_dict, _ = get_config(default_build_option)
-                    for key, value in build_template.items():
-                        if not value:
-                            build_template[key] = default_build_option_dict[key]
-                    self.buildopts.update(build_template)
-            except Exception as e:
-                print_string("Error: {}".format(e))
+            is_makefile_valid, embarc_root, name = is_embarc_makefile(current_makefile)
+            if not is_makefile_valid:
+                logger.error("makefile {current_makefile} is invalid")
                 sys.exit(1)
+            else:
+                self.embarc_root = os.path.abspath(os.path.join(self.source_dir, embarc_root))
+                self.name = name if name else os.path.basename(app_normpath)
+        self.source_dir = app_normpath
 
-        current_build_list = ["%s=%s" % (opt, build_template[opt]) for opt in BUILD_CONFIG_TEMPLATE.keys()]
-        self.make_options = self.make_options + " ".join(current_build_list)
+    def setup_build(self):
+        logger.info("setting up build configurations ...")
+        if not self.build_dir:
+            logger.error("unable to determine the build folder, check the specified build directory")
+            sys.exit(1)
+        if os.path.exists(self.build_dir):
+            if not os.path.isdir(self.build_dir):
+                logger.error("build directory {} exists and is not a directory".format(self.build_dir))
+                sys.exit(1)
+        else:
+            os.makedirs(self.build_dir, exist_ok=False)
+        self.check_source_dir()
+        logger.info("application: {}".format(self.source_dir))
+        if os.path.exists(self.embarc_config):
+            logger.info("get cached config from {}".format(self.embarc_config))
+            self.cache_configs = read_json(self.embarc_config)
+        if self.cache_configs.get("EMBARC_ROOT", None):
+            if is_embarc_base(self.cache_configs["EMBARC_ROOT"]):
+                self.embarc_root = self.cache_configs["EMBARC_ROOT"]
+                logger.info("embARC root: {}".format(self.embarc_root))
+        self.cache_configs["EMBARC_ROOT"] = self.embarc_root
+        self.find_platform()
+        self.toolchain = self.toolchain or self.cache_configs.get("TOOLCHAIN", None)
+        if not self.toolchain:
+            logger.error("unable to determine build toolchain")
+            sys.exit(1)
+        logger.info("toolchain: {}".format(self.toolchain))
+        self.cache_configs["TOOLCHAIN"] = self.toolchain
+        secureshield_config = secureshield.common_check(
+            self.toolchain, self.platform.name, self.source_dir)
+        if secureshield_config:
+            logger.info("found secureshield configurations")
+            self.secureshield_config = secureshield_config
 
-        self.buildopts.update(build_template)
-        generate_json(self.buildopts, self.embarc_config)
+    def terminate(self, proc):
+        for child in psutil.Process(proc.pid).children(recursive=True):
+            try:
+                os.kill(child.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+        proc.terminate()
+        time.sleep(0.5)
+        proc.kill()
+        self.terminated = True
 
-        print_string("Current configuration ")
-        table_head = list()
-        table_content = list()
-        for key, value in build_template.items():
-            table_head.append(key)
-            table_content.append(value)
-        msg = [table_head, [table_content]]
-        print_table(msg)
-        self.osproot = osp_root
-        return build_template
+    def _output_reader(self, proc):
+        log_out_fp = open(os.path.join(self.build_dir, self.log), "wt")
+        for line in iter(proc.stdout.readline, b''):
+            if proc.args[-1] in ["opt", "info", "all"]:
+                print(line.decode('utf-8').rstrip())
+            log_out_fp.write(line.decode('utf-8'))
+            log_out_fp.flush()
+        log_out_fp.close()
 
-    def get_build_template(self):
+    def do_build(self, command):
+        logger.info("start to build application\n")
+        env = os.environ.copy()
 
-        build_template = BUILD_CONFIG_TEMPLATE
-        build_template = collections.OrderedDict()
-        return build_template
+        with subprocess.Popen(command, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, cwd=self.build_dir, env=env) as proc:
+            t = threading.Thread(target=self._output_reader, args=(proc,), daemon=True)
+            t.start()
+            t.join()
+            if t.is_alive():
+                self.terminate(proc)
+                t.join()
+            proc.wait()
+            self.returncode = proc.returncode
+
+    def get_size(self):
+        SHF_WRITE = 0x1
+        SHF_ALLOC = 0x2
+        SHF_EXEC = 0x4
+        SHF_WRITE_ALLOC = SHF_WRITE | SHF_ALLOC
+        SHF_ALLOC_EXEC = SHF_ALLOC | SHF_EXEC
+        rom_addr_ranges = list()
+        ram_addr_ranges = list()
+        rom_size = 0
+        ram_size = 0
+        kernel = os.path.join(self.build_dir,
+                              "obj_%s_%s" % (self.platform.name, self.platform.version),
+                              "%s_%s" % (self.toolchain, self.platform.core),
+                              "%s_%s_%s.elf" % (self.name, self.toolchain, self.platform.core))
+        if not os.path.exists(kernel):
+            logger.error("Can't find the kernel file {}".format(kernel))
+            sys.exit(1)
+        elf = ELFFile(open(kernel, "rb"))
+        for section in elf.iter_sections():
+            size = section['sh_size']
+            sec_start = section['sh_addr']
+            sec_end = sec_start + size - 1
+            bound = {'start': sec_start, 'end': sec_end}
+
+            if section['sh_type'] == 'SHT_NOBITS':
+                # BSS and noinit sections
+                ram_addr_ranges.append(bound)
+                ram_size += size
+            elif section['sh_type'] == 'SHT_PROGBITS':
+                # Sections to be in flash or memory
+                flags = section['sh_flags']
+                if (flags & SHF_ALLOC_EXEC) == SHF_ALLOC_EXEC:
+                    # Text section
+                    rom_addr_ranges.append(bound)
+                    rom_size += size
+                elif (flags & SHF_WRITE_ALLOC) == SHF_WRITE_ALLOC:
+                    # Data occupies both ROM and RAM
+                    # since at boot, content is copied from ROM to RAM
+                    rom_addr_ranges.append(bound)
+                    rom_size += size
+
+                    ram_addr_ranges.append(bound)
+                    ram_size += size
+                elif (flags & SHF_ALLOC) == SHF_ALLOC:
+                    # Read only data
+                    rom_addr_ranges.append(bound)
+                    rom_size += size
+        logger.info("rom total: {:<10}  ram total {:<10}".format(rom_size, ram_size))
+
+    def build_target(self, target):
+        self.setup_build()
+        make_opts = [
+            "make", "BOARD=%s" % self.platform.name,
+            "BD_VER=%s" % self.platform.version,
+            "CUR_CORE=%s" % self.platform.core,
+            "TOOLCHAIN=%s" % self.toolchain,
+            "EMBARC_ROOT=%s" % self.embarc_root,
+            "-C", self.source_dir,
+            "OUT_DIR_ROOT=%s" % (self.build_dir)
+        ]
+        if self.extra_build_opt:
+            make_opts.extend(self.extra_build_opt)
+        self.target = target
+        logger.info("Build target: {}".format(target))
+        if target == "clean":
+            self.clean()
+            return
+        start_time = time.time()
+
+        if self.secureshield_config:
+            with secureshield.secureshield_appl_cfg_gen(self.toolchain, self.secureshield_config, self.source_dir):
+                make_opts.append("USE_SECURESHIELD_APPL_GEN=1")
+                make_opts.append(self.target)
+                self.do_build(make_opts)
+        else:
+            make_opts.append(self.target)
+            self.do_build(make_opts)
+        build_time = time.time() - start_time
+        print("\n")
+        if not self.terminated and self.returncode != 0:
+            logger.error("command failed: {}".format(" ".join(make_opts)))
+            self.status = "failed"
+        elif self.terminated:
+            logger.error("command timeout: {}".format(" ".join(make_opts)))
+            self.status = "timeout"
+        else:
+            self.status = "passed"
+
+        if self.status == "passed" and self.target in ["elf", "all"]:
+            logger.info("command completed in: ({})s  ".format(build_time))
+            self.get_size()
+        if not self.embarc_config:
+            self.embarc_config = os.path.join(self.build_dir, "config.json")
+        generate_json(self.cache_configs, self.embarc_config)
+
+    def generate_ide(self):
+        self.setup_build()
+        generator = Generator()
+        for project in generator.generate_eclipse(builder=self):
+            project.generate()
+
+    def clean(self):
+        target = os.path.join(self.build_dir,
+                              "obj_%s_%s" % (self.platform.name, self.platform.version))
+        logger.info("remove directory {}".format(target))
+        delete_dir_files(target, True)
+
+    def distclean(self, app):
+        for dir in os.listdir(self.build_dir):
+            target = os.path.join(self.build_dir, dir)
+            if os.path.isdir(target) and dir.startswith("obj_"):
+                delete_dir_files(target, True)
+
+
+class Generator(object):
+
+    def generate_eclipse(self, builder):
+        yield EclipseARC(builder=builder)
+
+
+class EclipseARC(object):
+    def __init__(self, builder):
+        self.builder = builder
+        self.defines = list()
+        self.includes = list()
+        self.openocd_cfg = None
+        self.file_types = ["cpp", "c", "s", "obj", "lib", "h", "mk"]
+
+    def get_opt(self):
+        command = [
+            "make", "BOARD=%s" % (self.builder.platform.name),
+            "BD_VER=%s" % (self.builder.platform.version),
+            "CUR_CORE=%s" % (self.builder.platform.core),
+            "TOOLCHAIN=%s" % self.builder.toolchain,
+            "EMBARC_ROOT=%s" % self.builder.embarc_root,
+            "-C", self.builder.source_dir,
+            "opt"
+        ]
+        try:
+            output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+            if output:
+                lines = output.decode("utf-8").splitlines()
+                for line in lines:
+                    if "COMPILE_OPT" in line:
+                        opts = line.split()
+                        for opt in opts:
+                            if opt.startswith("-D"):
+                                self.defines.append(opt[2:])
+                            elif opt.startswith("-I"):
+                                include = opt[2:]
+                                if include.startswith("obj_%s_%s" % (self.builder.platform.name, self.builder.platform.version)):
+                                    include = os.path.join(self.builder.build_dir, include)
+                                self.includes.append(include.replace("\\", "/"))
+                            else:
+                                continue
+                    elif "DBG_HW_FLAGS" in line:
+                        openocd = re.search(r'-s (.*) -f (.*)" ', line)
+                        if openocd:
+                            self.openocd_script = openocd.group(1).strip()
+                            self.openocd_cfg = openocd.group(2).strip()
+                        break
+                    else:
+                        continue
+
+        except subprocess.CalledProcessError as ex:
+            logger.error("Fail to run command {}".format(command))
+            sys.exit(ex.output.decode("utf-8"))
+
+    def get_cproject_cfg(self):
+        make_opts = [
+            "BOARD=%s" % self.builder.platform.name,
+            "BD_VER=%s" % self.builder.platform.version,
+            "CUR_CORE=%s" % self.builder.platform.core,
+            "TOOLCHAIN=%s" % self.builder.toolchain,
+            "EMBARC_ROOT=%s" % self.builder.embarc_root.replace("\\", "/"),
+            "-C", self.builder.source_dir.replace("\\", "/"),
+            "OUT_DIR_ROOT=%s" % (self.builder.build_dir.replace("\\", "/")),
+        ]
+        cproject_cfg = {
+            "name": self.builder.name,
+            "core": {
+                self.builder.platform.core: {
+                    "description": str(self.builder.platform)[1:-1].upper(),
+                    "id": random.randint(1000000000, 2000000000)
+                }
+            },
+            "includes": [],
+            "defines": self.defines,
+            "make_opts": " ".join(make_opts),
+            "toolchain": self.builder.toolchain,
+        }
+        return cproject_cfg
+
+    def get_debug_cfg(self):
+        debug_cfg = dict()
+        debug_cfg["name"] = self.builder.name
+        nsimdrv = find_executable("nsimdrv")
+        if not nsimdrv:
+            logger.error("can not find nsim")
+            sys.exit(1)
+        debug_cfg["nsim"] = nsimdrv
+        debug_cfg["nsim_tcf"] = os.path.join(self.builder.embarc_root,
+                                             "board/nsim/configs/%s" % self.builder.platform.version,
+                                             "tcf/%s.tcf" % self.builder.platform.core).replace("\\", "/")
+        debug_cfg["nsim_port"] = 49105
+        gnu_executable = find_executable("arc-elf32-gcc")
+        if not gnu_executable:
+            logger.error("can not find arc-elf32-gcc")
+            sys.exit(1)
+        debug_cfg["openocd_bin"] = os.path.join(os.path.dirname(gnu_executable),
+                                                "openocd.exe").replace("\\", "/")
+        debug_cfg["openocd_cfg"] = self.openocd_cfg.replace("\\", "/")
+        return debug_cfg
+
+    def generate(self):
+        self.get_opt()
+        project_cfg = dict()
+        project_cfg["links"] = dict()
+        project_cfg["name"] = self.builder.name
+        embarc_root = self.builder.embarc_root.replace("\\", "/")
+        project_cfg["embarc_root"] = embarc_root
+        if self.builder.source_dir != self.builder.build_dir:
+            project_cfg["source_dir"] = self.builder.source_dir.replace("\\", "/")
+        cproject_cfg_include = set()
+
+        for include in self.includes:
+            if include == embarc_root:
+                continue
+            if "embARC_generated" in include:
+                build_dir = self.builder.build_dir.replace("\\", "/")
+                virtual_dir = include.replace(build_dir, "")
+                cproject_cfg_include.add(virtual_dir)
+                continue
+            if include == ".":
+                cproject_cfg_include.add("")
+                continue
+            for file in os.listdir(include):
+                virtual_dir = include.replace(embarc_root, "embARC")
+                cproject_cfg_include.add(virtual_dir)
+                if os.path.isfile(os.path.join(include, file)):
+                    if os.path.splitext(file)[-1][1:] in self.file_types or (file in MAKEFILENAMES):
+                        if not project_cfg["links"].get(virtual_dir, None):
+                            project_cfg["links"][virtual_dir] = list()
+                        link = {"name": file,
+                                "dir": include.replace(embarc_root, "OSP_ROOT")}
+                        if link not in project_cfg["links"][virtual_dir]:
+                            project_cfg["links"][virtual_dir].append(
+                                {"name": file,
+                                 "dir": include.replace(embarc_root, "OSP_ROOT")}
+                            )
+        exporter = Exporter(self.builder.toolchain)
+        logger.info("""Start to generate IDE project accroding to
+                        templates (.project.tmpl and .cproject.tmpl)""")
+        exporter.gen_file_jinja(
+            "project.tmpl", project_cfg, ".project", self.builder.build_dir
+        )
+
+        cproject_cfg = self.get_cproject_cfg()
+        cproject_cfg["includes"] = list(cproject_cfg_include)
+        exporter.gen_file_jinja(
+            ".cproject.tmpl", cproject_cfg, ".cproject", self.builder.build_dir
+        )
+
+        debug_cfg = self.get_debug_cfg()
+        debug_cfg["core"] = cproject_cfg["core"]
+        debug_cfg["board"] = self.builder.platform.name
+        debug_cfg["bd_ver"] = self.builder.platform.version
+        exporter.gen_file_jinja(
+            ".launch.tmpl", debug_cfg, "%s-%s.launch" % (debug_cfg["name"], self.builder.platform.core), self.builder.build_dir
+        )
+        logger.info(
+            "Open ARC GNU IDE (version) Eclipse \
+            - >File >Open Projects from File System >Paste\n{}".format(
+                self.builder.build_dir
+            )
+        )

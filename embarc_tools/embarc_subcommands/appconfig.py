@@ -1,9 +1,7 @@
 from __future__ import print_function, division, unicode_literals
-import os
 import sys
-from ..notify import print_string
-from ..utils import getcwd, read_json, cd
-from ..osp import osp
+import os
+from ..utils import getcwd, generate_json
 from ..builder import build
 
 help = "Get or set application config"
@@ -16,55 +14,41 @@ def run(args, remainder=None):
     if remainder:
         print("[embARC] embarc appconfig: error: invalid parameter %s" % remainder[0])
         sys.exit(1)
-    app_path = args.path
-    recordBuildConfig = dict()
-    osppath = osp.OSP()
-    osp_root = None
-
-    osppath = osp.OSP()
-    makefile = osppath.get_makefile(app_path)
-    if makefile:
-        embarc_config = os.path.join(app_path, "embarc_app.json")
-        if os.path.exists(embarc_config):
-            print("[embARC] Read embarc_app.json")
-            recordBuildConfig = read_json(embarc_config)
-        if args.board:
-            recordBuildConfig["BOARD"] = args.board
-        if args.bd_ver:
-            recordBuildConfig["BD_VER"] = args.bd_ver
-        if args.core:
-            recordBuildConfig["CUR_CORE"] = args.core
-        if args.toolchain:
-            recordBuildConfig["TOOLCHAIN"] = args.toolchain
-        if args.olevel:
-            recordBuildConfig["OLEVEL"] = args.olevel
-        if args.osp_root:
-            osp_root, _ = osppath.check_osp(args.osp_root)
-            recordBuildConfig["EMBARC_OSP_ROOT"] = osp_root.replace("\\", "/")
-        builder = build.embARC_Builder(osp_root, recordBuildConfig)
-        build_config_template = builder.get_build_template()
-        with cd(app_path):
-            builder.get_makefile_config(build_config_template)
-
-    else:
-        print_string("[embARC] Please set a valid application path")
-        return
+    cached_config = args.config
+    if not cached_config:
+        if os.path.exists(os.path.join(args.outdir, "build.json")):
+            cached_config = os.path.join(args.outdir, "build.json")
+        elif os.path.exists(os.path.join(args.directory, "build.json")):
+            cached_config = os.path.join(args.directory, "build.json")
+    builder = build.embARC_Builder(
+        source_dir=args.directory,
+        build_dir=args.directory,
+        board=args.board, board_version=args.bd_ver,
+        core=args.core, toolchain=args.toolchain,
+        embarc_root=args.embarc_root,
+        embarc_config=cached_config
+    )
+    builder.setup_build()
+    generate_json(builder.cache_configs, builder.embarc_config)
 
 
 def setup(subparsers):
     subparser = subparsers.add_parser('appconfig', help=help, description=description)
     subparser.add_argument(
-        "-d", "--path", default=getcwd(), help="application path", metavar='')
+        "-d", "--directory", default=getcwd(), help="application path", metavar='')
+    subparser.add_argument(
+        "-O", "--outdir", default=os.path.join(os.getcwd(), "build-out"),
+        help="Output directory for logs and binaries. ", metavar='')
     subparser.add_argument(
         "-b", "--board", help="set board", metavar='')
     subparser.add_argument(
-        "--bd_ver", help="set board version", metavar='')
+        "--bd-ver", help="set board version", metavar='')
     subparser.add_argument(
         "--core", help="set core", metavar='')
     subparser.add_argument(
         "--toolchain", choices=["mw", "gnu"], help="set toolchain", metavar='')
     subparser.add_argument(
-        "--osp_root", help="set embARC OSP root path", metavar='')
+        "--embarc-root", help="set embARC OSP root path", metavar='')
     subparser.add_argument(
-        "-o", "--olevel", default="O3", choices=["Os", "O0", "O1", "O2", "O3"], help="set olevel", metavar='')
+        "--config", help="Specify application configuration, default is to look for build.json", metavar='')
     subparser.set_defaults(func=run)
