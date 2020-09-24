@@ -3,8 +3,12 @@ import sys
 import os
 import time
 import collections
-from ..settings import BUILD_CONFIG_TEMPLATE, BUILD_OPTION_NAMES, BUILD_INFO_NAMES, BUILD_CFG_NAMES, BUILD_SIZE_SECTION_NAMES, get_config, MAKEFILENAMES
-from ..utils import mkdir, delete_dir_files, cd, generate_json, pqueryOutputinline, pqueryTemporaryFile
+import threading
+import subprocess
+from elftools.elf.elffile import ELFFile
+from distutils.spawn import find_executable
+from ..settings import BUILD_CONFIG_TEMPLATE, BUILD_OPTION_NAMES, BUILD_INFO_NAMES, BUILD_CFG_NAMES, get_config, MAKEFILENAMES
+from ..utils import mkdir, delete_dir_files, cd, generate_json
 from ..notify import (print_string, print_table)
 from ..osp import osp
 from ..builder import secureshield
@@ -30,6 +34,8 @@ class embARC_Builder(object):
             self.buildopts.update(buildopts)
         self.make_options = make_options
         self.embarc_config = embarc_config
+        self.log = "build.log"
+        self.build_dir = None
 
     @staticmethod
     def is_embarc_makefile(app):
@@ -66,10 +72,9 @@ class embARC_Builder(object):
                 build_status['reason'] = 'Application makefile is invalid!'
                 build_status['result'] = False
 
-        app_realpath = os.path.realpath(app_normpath)
-        build_status['app_path'] = app_realpath
+        build_status['app_path'] = os.path.realpath(app_normpath)
 
-        return app_realpath, build_status
+        return build_status
 
     def configCoverity(self, toolchain):
         print_string("Config coverity")
@@ -105,69 +110,6 @@ class embARC_Builder(object):
         if os.path.exists(self.coverity_html):
             delete_dir_files(self.coverity_html, dir=True)
 
-    def build_coverity(self, make_cmd):
-        build_status = {'result': True, 'reason': ''}
-        print_string("BEGIN SECTION Configure Coverity to use the built-incompiler")
-        config_compilercmd = "cov-configure --config {} --template --comptype {} --compiler {}".format(
-            self.coverity_config,
-            self.coverity_comptype, self.coverity_compiler
-        )
-        returncode = os.system(config_compilercmd)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = "Configure Coverity Failed!"
-            return build_status
-
-        print_string("BEGIN SECTION Build with Coverity {}".format(self.coverity_sa_version))
-        coverity_build = "cov-build --config %s --dir %s %s" % (self.coverity_config, self.coverity_data_dir, make_cmd)
-        try:
-            build_proc = pqueryOutputinline(coverity_build, console=True)
-            build_status['build_msg'] = build_proc
-        except Exception as e:
-            build_status["result"] = False
-            build_status["reason"] = "Build with Coverity Failed! {}".format(e)
-            return build_status
-
-        print_string("BEGIN SECTION Coverity Analyze Defects")
-        coverity_analyze = "cov-analyze --dir {}".format(self.coverity_data_dir)
-        returncode = os.system(coverity_analyze)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = "Coverity Analyze Defects Failed!"
-            return build_status
-
-        print_string("BEGIN SECTION Coverity Format Errors into HTML")
-        coverity_errors = "cov-format-errors --dir %s -x -X --html-output %s" % (self.coverity_data_dir, self.coverity_html)
-        returncode = os.system(coverity_errors)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = "Coverity Format Errors into HTML Failed!"
-            return build_status
-
-        print_string("BEGIN SECTION Coverity Commit defects to {} steam {}".format(self.coverity_server, self.coverity_steam))
-        coverity_commit = "cov-commit-defects --dir %s --host %s --stream %s --user %s --password %s" % (
-            self.coverity_data_dir,
-            self.coverity_server, self.coverity_steam, self.user, self.password
-        )
-        returncode = os.system(coverity_commit)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = "Coverity Commit defects Failed!"
-            return build_status
-
-        '''print_string("BEGIN SECTION Coverity Send E-mail Notifications")
-        coverity_manage = "cov-manage-im --mode notification --execute --view 'Default' --host %s --user %s --password %s" % (
-            self.coverity_server,
-            self.user, self.password
-        )
-        returncode = os.system(coverity_manage)
-        if returncode != 0:
-            build_status["result"] = False
-            build_status["reason"] = " Coverity Send E-mail Notifications Failed!"
-            return build_status'''
-
-        return build_status
-
     def get_build_cmd(self, app, target=None, parallel=8, silent=False):
         build_status = dict()
         build_precmd = "make "
@@ -198,68 +140,71 @@ class embARC_Builder(object):
         build_status['build_cmd'] = build_cmd
         return build_status
 
-    def build_target(self, app, target=None, parallel=8, coverity=False, silent=False):
-        app_realpath, build_status = self.build_common_check(app)
+    def _output_reader(self, proc):
+        log_out_fp = open(os.path.join(self.build_dir, self.log), "wt")
+        for line in iter(proc.stdout.readline, b''):
+            if proc.args[-1] in ["opt", "info", "all"]:
+                print(line.decode('utf-8').rstrip())
+            log_out_fp.write(line.decode('utf-8'))
+            log_out_fp.flush()
+        log_out_fp.close()
+
+    def build_target(self, app, target=None, parallel=8, coverity=False, silent=False, size=False):
+        build_status = self.build_common_check(app)
         build_status['build_target'] = target
         build_status['time_cost'] = 0
-        print_string("Build target: {} " .format(target))
+        print_string("Build target: {} ".format(target))
 
         if not build_status['result']:
             return build_status
-
         # Check and create output directory
         if (self.outdir is not None) and (not os.path.isdir(self.outdir)):
             print_string("Create application output directory: " + self.outdir)
             os.makedirs(self.outdir)
 
-        current_build_cmd = self.get_build_cmd(app_realpath, target, parallel, silent)
+        current_build_cmd = self.get_build_cmd(self.build_dir, target, parallel, silent)
         build_status.update(current_build_cmd)
         build_cmd = build_status.get('build_cmd', None)
+        time_pre = time.time()
 
         def start_build(build_cmd, build_status=None):
             print_string("Start to build application")
-            return_code = 0
-            time_pre = time.time()
+            command = build_cmd.split()
             if coverity:
-                with cd(app_realpath):
-                    self._setCoverityDirs(app)
-                    coverity_build_status = self.build_coverity(build_cmd)
-                    if not coverity_build_status["result"]:
-                        build_status["result"] = False
-                        build_status["reason"] = coverity_build_status["reason"]
-                        build_status["build_msg"] = coverity_build_status["build_msg"]
-                    else:
-                        build_status["build_msg"] = ["Build Coverity successfully"]
-            else:
-                if target not in ["opt", "info", "size", "all"]:
-                    with cd(app_realpath):
-                        try:
-                            return_code = os.system(build_cmd)
-                            if return_code == 0:
-                                build_status["build_msg"] = ["Build successfully"]
-                            else:
-                                build_status["build_msg"] = ["Build failed"]
-                                build_status['result'] = False
-                                build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
-                        except (KeyboardInterrupt):
-                            print_string("Terminate batch job", "warning")
-                            sys.exit(1)
+                if not find_executable("which cov-configure && which cov-build"):
+                    build_status["result"] = False
+                    build_status["reason"] = "Coverity Build Tool is not in PATH"
+                    return build_status
+                self._setCoverityDirs(app)
+                subprocess.call(["cov-configure", "--config", self.coverity_config,
+                                 "--template", "--comptype", self.coverity_comptype,
+                                 "--compiler", self.coverity_compiler])
+                command = ["cov-build", "--config", self.coverity_config, "--dir", self.coverity_data_dir] + command
+
+            with subprocess.Popen(command, stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, cwd=self.build_dir, shell=True,) as proc:
+                t = threading.Thread(target=self._output_reader, args=(proc,), daemon=True)
+                t.start()
+                t.join()
+                proc.wait()
+                if proc.returncode != 0:
+                    build_status['result'] = False
+                    build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
                 else:
-                    try:
-                        build_proc = pqueryOutputinline(build_cmd, cwd=app, console=True)
-                        build_status['build_msg'] = build_proc
-                    except Exception as e:
-                        print("Run command({}) failed! {} ".format(build_cmd, e))
-                        build_status["build_msg"] = ["Build failed"]
-                        build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
-                        build_status['result'] = False
-            build_status['time_cost'] = (time.time() - time_pre)
+                    build_status['result'] = True
+            if coverity:
+                subprocess.call(["cov-analyze", "--dir", self.coverity_data_dir])
+
+                subprocess.call(["cov-format-errors", "--dir", self.coverity_data_dir, "-x", "-X", "--html-output", self.coverity_html])
+                subprocess.call(["cov-commit-defects", "--dir", self.coverity_data_dir, "--host",
+                                self.coverity_server, "--stream", self.coverity_steam, "--user",
+                                self.user, "--password", self.password])
             return build_status
 
         secureshield_config = secureshield.common_check(
-            self.buildopts["TOOLCHAIN"], self.buildopts["BOARD"], app_realpath)
+            self.buildopts["TOOLCHAIN"], self.buildopts["BOARD"], self.build_dir)
         if secureshield_config:
-            with secureshield.secureshield_appl_cfg_gen(self.buildopts["TOOLCHAIN"], secureshield_config, app_realpath):
+            with secureshield.secureshield_appl_cfg_gen(self.buildopts["TOOLCHAIN"], secureshield_config, self.build_dir):
                 build_cmd_list = build_cmd.split()
                 target = build_cmd_list[-1]
                 build_cmd_list[-1] = "USE_SECURESHIELD_APPL_GEN=1"
@@ -268,6 +213,9 @@ class embARC_Builder(object):
                 build_status = start_build(build_cmd, build_status)
         else:
             build_status = start_build(build_cmd, build_status)
+        if build_status['result'] and size:
+            self.get_build_size()
+        build_status['time_cost'] = (time.time() - time_pre)
         print_string("Completed in: ({})s  ".format(build_status['time_cost']))
         return build_status
 
@@ -277,166 +225,129 @@ class embARC_Builder(object):
             return build_status
 
         build_cfg = dict()
-        cfg_lines = build_status['build_msg']
-
-        for cfg_line in cfg_lines:
-            words = cfg_line.split(':')
-            if len(words) == 2:
-                key = words[0].strip()
-                value = words[1].strip()
-                if key in BUILD_CFG_NAMES or key in BUILD_OPTION_NAMES:
-                    build_cfg[key] = value
+        with open(os.path.join(self.build_dir, self.log), "r") as f:
+            for cfg_line in f.readlines():
+                words = cfg_line.split(':')
+                if len(words) == 2:
+                    key = words[0].strip()
+                    value = words[1].strip()
+                    if key in BUILD_CFG_NAMES or key in BUILD_OPTION_NAMES:
+                        build_cfg[key] = value
 
         build_status['build_cfg'] = build_cfg
 
         # Get Build Info
         info_status = self.build_target(app, target=str('info'))
-        build_out = info_status['build_msg']
         build_info = dict()
         if info_status['result']:
-            for info_line in build_out:
-                words = info_line.split(':')
-                if len(words) == 2:
-                    key = words[0].strip()
-                    value = words[1].strip()
-                    if key in BUILD_INFO_NAMES:
-                        build_info[key] = value
-                    if key == 'BUILD_OPTION':
-                        build_cfgs_dict = value.split()
-                        for cfg_dict in build_cfgs_dict:
-                            cfg_pair = cfg_dict.split('=')
-                            if len(cfg_pair) == 2 and cfg_pair[0] in BUILD_OPTION_NAMES:
-                                build_status['build_cfg'][cfg_pair[0]] = cfg_pair[1]
-                    if key == 'MIDDLEWARE' or key == 'PERIPHERAL':
-                        build_info[key + 'S'] = value.split()
-                    if key == 'APPLICATION_ELF':
-                        build_info['APPLICATION_OUTDIR'] = os.path.dirname(value)
+            with open(os.path.join(self.build_dir, self.log), "r") as f:
+                for info_line in f.readlines():
+                    words = info_line.split(':')
+                    if len(words) == 2:
+                        key = words[0].strip()
+                        value = words[1].strip()
+                        if key in BUILD_INFO_NAMES:
+                            build_info[key] = value
+                        if key == 'BUILD_OPTION':
+                            build_cfgs_dict = value.split()
+                            for cfg_dict in build_cfgs_dict:
+                                cfg_pair = cfg_dict.split('=')
+                                if len(cfg_pair) == 2 and cfg_pair[0] in BUILD_OPTION_NAMES:
+                                    build_status['build_cfg'][cfg_pair[0]] = cfg_pair[1]
+                        if key == 'MIDDLEWARE' or key == 'PERIPHERAL':
+                            build_info[key + 'S'] = value.split()
+                        if key == 'APPLICATION_ELF':
+                            build_info['APPLICATION_OUTDIR'] = os.path.dirname(value)
         build_status['build_info'] = build_info
 
-        app_realpath = build_status['app_path']
         if 'EMBARC_ROOT' in build_status['build_cfg']:
             if not os.path.isabs((build_status['build_cfg']['EMBARC_ROOT'])):
-                build_status['build_cfg']['EMBARC_ROOT'] = os.path.realpath(os.path.join(app_realpath, build_status['build_cfg']['EMBARC_ROOT']))
+                build_status['build_cfg']['EMBARC_ROOT'] = os.path.realpath(os.path.join(self.build_dir, build_status['build_cfg']['EMBARC_ROOT']))
         if 'OUT_DIR_ROOT' in build_status['build_cfg']:
             if not os.path.isabs(build_status['build_cfg']['OUT_DIR_ROOT']):
-                build_status['build_cfg']['OUT_DIR_ROOT'] = os.path.realpath(os.path.join(app_realpath, build_status['build_cfg']['OUT_DIR_ROOT']))
+                build_status['build_cfg']['OUT_DIR_ROOT'] = os.path.realpath(os.path.join(self.build_dir, build_status['build_cfg']['OUT_DIR_ROOT']))
         if 'OUT_DIR_ROOT' in build_status['build_info']:
             if not os.path.isabs(build_status['build_info']['OUT_DIR_ROOT']):
-                build_status['build_info']['OUT_DIR_ROOT'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['OUT_DIR_ROOT']))
+                build_status['build_info']['OUT_DIR_ROOT'] = os.path.realpath(os.path.join(self.build_dir, build_status['build_info']['OUT_DIR_ROOT']))
         if 'APPLICATION_ELF' in build_status['build_info']:
             if not os.path.isabs(build_status['build_info']['APPLICATION_ELF']):
-                build_status['app_elf'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['APPLICATION_ELF']))
+                build_status['app_elf'] = os.path.realpath(os.path.join(self.build_dir, build_status['build_info']['APPLICATION_ELF']))
             else:
                 build_status['app_elf'] = build_status['build_info']['APPLICATION_ELF']
         if 'APPLICATION_HEX' in build_status['build_info']:
             if not os.path.isabs(build_status['build_info']['APPLICATION_HEX']):
-                build_status['app_hex'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['APPLICATION_HEX']))
+                build_status['app_hex'] = os.path.realpath(os.path.join(self.build_dir, build_status['build_info']['APPLICATION_HEX']))
             else:
                 build_status['app_hex'] = build_status['build_info']['APPLICATION_HEX']
         if 'APPLICATION_BIN' in build_status['build_info']:
             if not os.path.isabs(build_status['build_info']['APPLICATION_BIN']):
-                build_status['app_bin'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['APPLICATION_BIN']))
+                build_status['app_bin'] = os.path.realpath(os.path.join(self.build_dir, build_status['build_info']['APPLICATION_BIN']))
             else:
                 build_status['app_bin'] = build_status['build_info']['APPLICATION_BIN']
         if 'APPLICATION_OUTDIR' in build_status['build_info']:
             if not os.path.isabs(build_status['build_info']['APPLICATION_OUTDIR']):
-                build_status['app_outdir'] = os.path.realpath(os.path.join(app_realpath, build_status['build_info']['APPLICATION_OUTDIR']))
+                build_status['app_outdir'] = os.path.realpath(os.path.join(self.build_dir, build_status['build_info']['APPLICATION_OUTDIR']))
             else:
                 build_status['app_outdir'] = build_status['build_info']['APPLICATION_OUTDIR']
 
         return build_status
 
     def build_elf(self, app, parallel=False, pre_clean=False, post_clean=False, silent=False):
-        # Clean Application before build if requested
-        if pre_clean:
-            build_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not build_status['result']:
-                return build_status
-
-        # Build Application
+        self.clean(app)
         build_status = self.build_target(app, parallel=parallel, target=str('all'), silent=silent)
         if not build_status['result']:
             return build_status
-        # Clean Application after build if requested
-        if post_clean:
-            clean_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not clean_status['result']:
-                return clean_status
+        self.clean(app)
 
         return build_status
 
     def build_bin(self, app, parallel=False, pre_clean=False, post_clean=False):
-        # Clean Application before build if requested
-        if pre_clean:
-            build_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not build_status['result']:
-                return build_status
-
-        # Build Application
+        self.clean(app)
         build_status = self.build_target(app, parallel=parallel, target=str('bin'))
         if not build_status['result']:
             return build_status
-        # Clean Application after build if requested
-        if post_clean:
-            clean_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not clean_status['result']:
-                return clean_status
+        self.clean(app)
 
         return build_status
 
     def build_hex(self, app, parallel=False, pre_clean=False, post_clean=False):
-        # Clean Application before build if requested
-        if pre_clean:
-            build_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not build_status['result']:
-                return build_status
-
-        # Build Application
+        self.clean(app)
         build_status = self.build_target(app, parallel=parallel, target=str('hex'))
         if not build_status['result']:
             return build_status
-        # Clean Application after build if requested
-        if post_clean:
-            clean_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not clean_status['result']:
-                return clean_status
+        self.clean(app)
 
         return build_status
 
-    def get_build_size(self, app, parallel=False, silent=False):
-        build_status = self.build_target(app, parallel=parallel, target=str('size'), silent=silent)
-        build_size = dict()
-        if build_status['result']:
-            app_size_lines = build_status['build_msg']
-            len_app_size_lines = len(app_size_lines)
-            if len_app_size_lines >= 3:
-                app_size_lines = app_size_lines[len_app_size_lines - 2:]
-                section_names = app_size_lines[0].split()
-                section_values = app_size_lines[1].split()
-                for idx, section_name in enumerate(section_names):
-                    if section_name in BUILD_SIZE_SECTION_NAMES:
-                        build_size[section_name] = int(section_values[idx])
-            else:
-                build_status['result'] = False
-        else:
-            print_string("Build failed and there is no size information")
-        build_status['build_size'] = build_size
-        return build_status
+    def get_build_size(self):
+        target = os.path.join(self.build_dir,
+                              "obj_%s_%s" % (self.buildopts["BOARD"], self.buildopts["BD_VER"]),
+                              "%s_%s" % (self.buildopts["TOOLCHAIN"], self.buildopts["CUR_CORE"]),
+                              "%s_%s_%s.elf" % (self.buildopts["APPL"], self.buildopts["TOOLCHAIN"], self.buildopts["CUR_CORE"]))
+        with open(target, 'rb') as f:
+            elffile = ELFFile(f)
+            for s in elffile.iter_sections():
+                print("{name}     {type} {addr} {offs} {size}".format(name=s.name,
+                                                                      type=s.header['sh_type'],
+                                                                      addr=s.header['sh_addr'],
+                                                                      offs=s.header['sh_offset'],
+                                                                      size=s.header['sh_size']))
 
-    def clean(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('clean'), parallel=parallel)
-        return build_status
+    def clean(self, app):
+        target = os.path.join(app,
+                              "obj_%s_%s" % (self.buildopts["BOARD"], self.buildopts["BD_VER"]))
+        delete_dir_files(target, True)
 
-    def distclean(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('distclean'), parallel=parallel)
-        return build_status
+    def distclean(self, app):
+        for dir in os.listdir(self.build_dir):
+            target = os.path.join(self.build_dir, dir)
+            if os.path.isdir(target) and dir.startswith("obj_"):
+                delete_dir_files(target, True)
 
-    def boardclean(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('boardclean'), parallel=parallel)
-        return build_status
+    def boardclean(self, app):
+        self.clean(app)
 
     def get_makefile_config(self, build_template=None):
-        # current_build_templates = dict()
         ospclass = osp.OSP()
         build_template["APPL"] = self.buildopts.get("APPL", False)
         build_template["BOARD"] = self.buildopts.get("BOARD", False)
@@ -463,10 +374,21 @@ class embARC_Builder(object):
 
         if not all(build_template.values()):
             try:
-                returncode, cmd_output = pqueryTemporaryFile(["make", "EMBARC_ROOT=" + str(osp_root), "info"])
+                command = ["make", "EMBARC_ROOT=" + str(osp_root), "info"]
+                with subprocess.Popen(command, stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE, cwd=self.build_dir, shell=True,) as proc:
+                    t = threading.Thread(target=self._output_reader, args=(proc,), daemon=True)
+                    t.start()
+                    t.join()
+                    proc.wait()
+                    if proc.returncode != 0:
+                        build_status['result'] = False
+                        build_status["reason"] = "ProcessError: Run command {} failed".format(build_cmd)
+                        return build_status
+
                 default_build_option = None
-                if not returncode and cmd_output:
-                    for line in cmd_output:
+                with open(os.path.join(self.build_dir, self.log), "r") as f:
+                    for line in f.readlines():
                         if line.startswith("BUILD_OPTION"):
                             default_build_option = str(line.split(":", 1)[1]).split()
                             break

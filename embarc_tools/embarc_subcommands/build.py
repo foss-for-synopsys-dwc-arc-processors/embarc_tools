@@ -11,87 +11,81 @@ description = ("Compile code using toolchain.\n"
 
 
 def run(args, remainder=None):
-    osproot = None
-    app_path = args.path
-    recordBuildConfig = dict()
-    app_path = os.path.abspath(app_path)
+    builder = build.embARC_Builder(outdir=args.outdir)
+    result = builder.build_common_check(args.path)
+    if result["result"]:
+        builder.build_dir = result["app_path"]
+        recordBuildConfig = dict()
+        embarc_config = args.app_config
 
-    if not (os.path.exists(app_path) and os.path.isdir(app_path)):
-        print("[embARC] This is not a valid application path")
-        return
+        if not (embarc_config and os.path.exists(embarc_config)):
+            embarc_config = os.path.join(builder.build_dir, "embarc_app.json")
 
-    embarc_config = args.app_config
-
-    if not (embarc_config and os.path.exists(embarc_config)):
-        embarc_config = os.path.join(app_path, "embarc_app.json")
-
-    if os.path.exists(embarc_config):
-        print("[embARC] Read embarc_app.json")
-        recordBuildConfig = read_json(embarc_config)
-
-    parallel = args.parallel
-    if args.board:
-        recordBuildConfig["BOARD"] = args.board
-    if args.bd_ver:
-        recordBuildConfig["BD_VER"] = args.bd_ver
-    if args.core:
-        recordBuildConfig["CUR_CORE"] = args.core
-    if args.toolchain:
-        recordBuildConfig["TOOLCHAIN"] = args.toolchain
-    if args.olevel:
-        recordBuildConfig["OLEVEL"] = args.olevel
-    if remainder:
-        if (remainder[0]).startswith("-"):
-            print("embarc build: error: invalid parameter %s" % remainder[0])
-            sys.exit(1)
-        make_config, target = get_config(remainder)
-        if target:
-            args.target = target
-        recordBuildConfig.update(make_config)
-
-    builder = build.embARC_Builder(osproot, recordBuildConfig, args.outdir)
-    if args.export:
-        builder.get_build_cmd(app_path, target=None, parallel=parallel, silent=False)
-        with cd(app_path):
-            if os.path.exists(".project") and os.path.exists(".cproject"):
-                while True:
-                    yes = get_input("The IDE project already exists, recreate and overwrite the old files [Y/N]  ")
-                    if yes in ["yes", "Y", "y"]:
-                        break
-                    elif yes in ["no", "n", "N"]:
-                        return
-                    else:
-                        continue
-            generator = Generator()
+        if os.path.exists(embarc_config):
             recordBuildConfig = read_json(embarc_config)
-            for project in generator.generate(buildopts=recordBuildConfig):
-                project.generate()
-        sys.exit(0)
-    if args.target:
-        information = None
-        if args.target == "elf":
-            information = builder.build_elf(app_path, parallel=parallel, pre_clean=False, post_clean=False)
-        elif args.target == "bin":
-            information = builder.build_bin(app_path, parallel=parallel, pre_clean=False, post_clean=False)
-        elif args.target == "hex":
-            information = builder.build_hex(app_path, parallel=parallel, pre_clean=False, post_clean=False)
-        elif args.target == "clean":
-            information = builder.clean(app_path, parallel=parallel)
-        elif args.target == "distclean":
-            information = builder.distclean(app_path, parallel=parallel)
-        elif args.target == "boardclean":
-            information = builder.boardclean(app_path, parallel=parallel)
-        elif args.target == "info":
-            information = builder.get_build_info(app_path, parallel=parallel)
-        elif args.target == "size":
-            information = builder.get_build_size(app_path, parallel=parallel)
-        elif args.target:
-            information = builder.build_target(app_path, target=args.target, parallel=parallel, coverity=False)
-        else:
-            print("[embARC] Please choose right target")
-        if information:
-            if information.get("result") is False:
-                print("[embARC] Failed: {}".format(information.get("reason")))
+        if args.board:
+            recordBuildConfig["BOARD"] = args.board
+        if args.bd_ver:
+            recordBuildConfig["BD_VER"] = args.bd_ver
+        if args.core:
+            recordBuildConfig["CUR_CORE"] = args.core
+        if args.toolchain:
+            recordBuildConfig["TOOLCHAIN"] = args.toolchain
+        if args.olevel:
+            recordBuildConfig["OLEVEL"] = args.olevel
+        if remainder:
+            if (remainder[0]).startswith("-"):
+                print("embarc build: error: invalid parameter %s" % remainder[0])
+                sys.exit(1)
+            config, target = get_config(remainder)
+            if target:
+                args.target = target
+            recordBuildConfig.update(config)
+        builder.buildopts.update(recordBuildConfig)
+        if args.export:
+            builder.get_build_cmd(builder.build_dir, target=None, parallel=args.parallel, silent=False)
+            with cd(builder.build_dir):
+                if os.path.exists(".project") and os.path.exists(".cproject"):
+                    while True:
+                        yes = get_input("The IDE project already exists, recreate and overwrite the old files [Y/N]  ")
+                        if yes in ["yes", "Y", "y"]:
+                            break
+                        elif yes in ["no", "n", "N"]:
+                            return
+                        else:
+                            continue
+                generator = Generator()
+                recordBuildConfig = read_json(embarc_config)
+                for project in generator.generate(buildopts=recordBuildConfig):
+                    project.generate()
+            sys.exit(0)
+        if args.target:
+            information = None
+            if args.target == "elf":
+                information = builder.build_elf(builder.build_dir, parallel=args.parallel, pre_clean=False, post_clean=False)
+            elif args.target == "bin":
+                information = builder.build_bin(builder.build_dir, parallel=args.parallel, pre_clean=False, post_clean=False)
+            elif args.target == "hex":
+                information = builder.build_hex(builder.build_dir, parallel=args.parallel, pre_clean=False, post_clean=False)
+            elif args.target == "clean":
+                builder.clean(builder.build_dir)
+            elif args.target == "distclean":
+                builder.distclean(builder.build_dir)
+            elif args.target == "boardclean":
+                information = builder.boardclean(builder.build_dir)
+            elif args.target == "info":
+                information = builder.get_build_info(builder.build_dir, parallel=args.parallel)
+            elif args.target:
+                information = builder.build_target(builder.build_dir, target=args.target, parallel=args.parallel, coverity=False, size=args.size)
+            else:
+                print("[embARC] Please choose right target")
+            if information:
+                if information.get("result") is False:
+                    print("[embARC] Failed: {}".format(information.get("reason")))
+
+    else:
+        print_string("[embARC] %s" % result["reason"])
+        return
 
 
 def setup(subparsers):
@@ -116,8 +110,10 @@ def setup(subparsers):
         "--target", default="all",
         help="choose build target, default target is all", metavar='')
     subparser.add_argument(
+        "--size", action="store_true",
+        help="Enable computation of elf esction sizes.")
+    subparser.add_argument(
         "-g", "--export", action="store_true", help="generate IDE project files for your application")
     subparser.add_argument(
         "--app_config", help="specify application configuration, default is to look for embarc_app.json", metavar='')
     subparser.set_defaults(func=run)
-

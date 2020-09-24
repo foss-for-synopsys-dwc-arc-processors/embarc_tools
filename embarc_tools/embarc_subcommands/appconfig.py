@@ -2,8 +2,7 @@ from __future__ import print_function, division, unicode_literals
 import os
 import sys
 from ..notify import print_string
-from ..utils import getcwd, read_json, cd
-from ..osp import osp
+from ..utils import getcwd, read_json
 from ..builder import build
 
 help = "Get or set application config"
@@ -16,15 +15,13 @@ def run(args, remainder=None):
     if remainder:
         print("[embARC] embarc appconfig: error: invalid parameter %s" % remainder[0])
         sys.exit(1)
-    app_path = args.path
-    recordBuildConfig = dict()
-    osppath = osp.OSP()
-    osp_root = None
 
-    osppath = osp.OSP()
-    makefile = osppath.get_makefile(app_path)
-    if makefile:
-        embarc_config = os.path.join(app_path, "embarc_app.json")
+    builder = build.embARC_Builder()
+    result = builder.build_common_check(args.path)
+    if result["result"]:
+        recordBuildConfig = dict()
+        builder.build_dir = result["app_path"]
+        embarc_config = os.path.join(builder.build_dir, "embarc_app.json")
         if os.path.exists(embarc_config):
             print("[embARC] Read embarc_app.json")
             recordBuildConfig = read_json(embarc_config)
@@ -40,14 +37,13 @@ def run(args, remainder=None):
             recordBuildConfig["OLEVEL"] = args.olevel
         if args.osp_root:
             osp_root, _ = osppath.check_osp(args.osp_root)
-            recordBuildConfig["EMBARC_OSP_ROOT"] = osp_root.replace("\\", "/")
-        builder = build.embARC_Builder(osp_root, recordBuildConfig)
+            builder.osproot = osp_root.replace("\\", "/")
+        builder.buildopts.update(recordBuildConfig)
         build_config_template = builder.get_build_template()
-        with cd(app_path):
-            builder.get_makefile_config(build_config_template)
+        builder.get_makefile_config(build_config_template)
 
     else:
-        print_string("[embARC] Please set a valid application path")
+        print_string("[embARC] %s" % result["reason"])
         return
 
 

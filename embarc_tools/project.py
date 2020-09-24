@@ -283,7 +283,7 @@ class Ide(object):
 
     @staticmethod
     def _list_elim_none(list_to_clean):
-        return [l for l in list_to_clean if l]
+        return list(filter(None.__ne__, list_to_clean))
 
     @staticmethod
     def _dict_elim_none(dic_to_clean):

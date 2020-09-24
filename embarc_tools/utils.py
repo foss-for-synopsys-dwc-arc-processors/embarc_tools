@@ -1,8 +1,5 @@
 from __future__ import print_function, unicode_literals
 from functools import reduce
-import random
-import time
-import io
 import sys
 import operator
 import subprocess
@@ -343,81 +340,6 @@ def pquery(command, output_callback=None, stdin=None, **kwargs):
     return stdout.decode("utf-8")
 
 
-def pqueryOutputinline(command, console=False, **kwargs):
-    proc = None
-    build_out = list()
-    file_num = random.randint(100000, 200000)
-    file_name = "message" + str(file_num) + ".log"
-    try:
-        with io.open(file_name, "wb") as writer, io.open(file_name, "rb", 1) as reader:
-            proc = subprocess.Popen(
-                command, stdout=writer, stderr=writer, shell=True, bufsize=1, **kwargs
-            )
-            end = ""
-            # if PYTHON_VERSION.startswith("3"):
-            #    end = "\n"
-            try:
-                while True:
-                    decodeline = reader.read().decode()
-                    if decodeline == str() and proc.poll() is not None:
-                        break
-                    if decodeline != str():
-                        build_out.append(decodeline)
-                        if console:
-                            print(decodeline, end=end)
-                            time.sleep(0.1)
-            except (KeyboardInterrupt):
-                print("[embARC] Terminate batch job")
-                sys.exit(1)
-
-    except OSError as e:
-        if e.args[0] == errno.ENOENT:
-            print(
-                "Could not execute \"%s\".\n"
-                "Please verify that it's installed and accessible from your current path by \
-                executing \"%s\".\n" % (command[0], command[0]), e.args[0])
-        else:
-            raise e
-    except Exception as e:
-        print(e)
-    proc.wait()
-    if os.path.exists(file_name):
-        remove(file_name)
-    if proc.stdout:
-        proc.stdout.close()
-    if proc.stderr:
-        proc.stderr.close()
-    del proc
-    return build_out
-
-
-def pqueryTemporaryFile(command):
-    current_command = None
-    if isinstance(command, list):
-        current_command = " ".join(command)
-    else:
-        current_command = command
-    print("[embARC] Run command {}".format(current_command))
-    proc = None
-    returncode = 0
-    rt_list = None
-    file_num = random.randint(100000, 200000)
-    file_name = "message" + str(file_num) + ".log"
-    try:
-        log_file = open(file_name, "w")
-        proc = subprocess.Popen(current_command, stdout=log_file, stderr=None, shell=True)
-        log_file.close()
-        returncode = proc.wait()
-
-    except Exception as e:
-        print("[embARC] Run command {} failed : {}".format(current_command, e))
-    if os.path.exists(file_name):
-        with open(file_name) as f:
-            rt_list = f.read().splitlines()
-        remove(file_name)
-    del proc
-    return returncode, rt_list
-
 def import_submodules(package, recursive=True):
     """ Import all submodules of a module, recursively, including subpackages
 
@@ -433,4 +355,3 @@ def import_submodules(package, recursive=True):
         elif recursive:
             results.update(import_submodules(full_name))
     return results
-

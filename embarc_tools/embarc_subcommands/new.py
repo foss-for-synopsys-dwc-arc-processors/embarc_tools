@@ -57,8 +57,6 @@ def run(args, remainder=None):
     exporter.gen_file_jinja("makefile.tmpl", config, "makefile", application)
     exporter.gen_file_jinja("main.c.tmpl", config, "main.c", application)
     print_string("Finish generate makefile and main.c, and they are in %s" % app_path)
-    # if args.csrc != ".":
-    #     mkdir(os.path.join(getcwd(), application, args.csrc))
 
 
 def get_osp_root(input_root=None):
