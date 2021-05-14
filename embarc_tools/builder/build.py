@@ -503,3 +503,166 @@ class embARC_Builder(object):
         build_template = BUILD_CONFIG_TEMPLATE
         build_template = collections.OrderedDict()
         return build_template
+
+class Generator(object):
+    
+    def generate_eclipse(self, builder):
+        yield EclipseARC(builder=builder)
+
+
+class EclipseARC(object):
+    def __init__(self, builder):
+        self.builder = builder
+        self.defines = list()
+        self.includes = list()
+        self.openocd_cfg = None
+        self.file_types = ["cpp", "c", "s", "obj", "lib", "h", "mk"]
+
+    def get_opt(self):
+        command = [
+            "make", "BOARD=%s" % (self.builder.platform.name),
+            "BD_VER=%s" % (self.builder.platform.version),
+            "CUR_CORE=%s" % (self.builder.platform.core),
+            "TOOLCHAIN=%s" % self.builder.toolchain,
+            "EMBARC_ROOT=%s" % self.builder.embarc_root,
+            "-C", self.builder.source_dir,
+            "opt"
+        ]
+        try:
+            output = subprocess.check_output(command, stderr=subprocess.STDOUT)
+            if output:
+                lines = output.decode("utf-8").splitlines()
+                for line in lines:
+                    if "COMPILE_OPT" in line:
+                        opts = line.split()
+                        for opt in opts:
+                            if opt.startswith("-D"):
+                                self.defines.append(opt[2:])
+                            elif opt.startswith("-I"):
+                                include = opt[2:]
+                                if include.startswith("obj_%s_%s" % (self.builder.platform.name, self.builder.platform.version)):
+                                    include = os.path.join(self.builder.build_dir, include)
+                                self.includes.append(include.replace("\\", "/"))
+                            else:
+                                continue
+                    elif "DBG_HW_FLAGS" in line:
+                        openocd = re.search(r'-s (.*) -f (.*)" ', line)
+                        if openocd:
+                            self.openocd_script = openocd.group(1).strip()
+                            self.openocd_cfg = openocd.group(2).strip()
+                        break
+                    else:
+                        continue
+
+        except subprocess.CalledProcessError as ex:
+            logger.error("Fail to run command {}".format(command))
+            sys.exit(ex.output.decode("utf-8"))
+
+    def get_cproject_cfg(self):
+        make_opts = [
+            "BOARD=%s" % self.builder.platform.name,
+            "BD_VER=%s" % self.builder.platform.version,
+            "CUR_CORE=%s" % self.builder.platform.core,
+            "TOOLCHAIN=%s" % self.builder.toolchain,
+            "EMBARC_ROOT=%s" % self.builder.embarc_root.replace("\\", "/"),
+            "-C", self.builder.source_dir.replace("\\", "/"),
+            "OUT_DIR_ROOT=%s" % (self.builder.build_dir.replace("\\", "/")),
+        ]
+        cproject_cfg = {
+            "name": self.builder.name,
+            "core": {
+                self.builder.platform.core: {
+                    "description": str(self.builder.platform)[1:-1].upper(),
+                    "id": random.randint(1000000000, 2000000000)
+                }
+            },
+            "includes": [],
+            "defines": self.defines,
+            "make_opts": " ".join(make_opts),
+            "toolchain": self.builder.toolchain,
+        }
+        return cproject_cfg
+
+    def get_debug_cfg(self):
+        debug_cfg = dict()
+        debug_cfg["name"] = self.builder.name
+        nsimdrv = find_executable("nsimdrv")
+        if not nsimdrv:
+            logger.error("can not find nsim")
+            sys.exit(1)
+        debug_cfg["nsim"] = nsimdrv
+        debug_cfg["nsim_tcf"] = os.path.join(self.builder.embarc_root,
+                                             "board/nsim/configs/%s" % self.builder.platform.version,
+                                             "tcf/%s.tcf" % self.builder.platform.core).replace("\\", "/")
+        debug_cfg["nsim_port"] = 49105
+        gnu_executable = find_executable("arc-elf32-gcc")
+        if not gnu_executable:
+            logger.error("can not find arc-elf32-gcc")
+            sys.exit(1)
+        debug_cfg["openocd_bin"] = os.path.join(os.path.dirname(gnu_executable),
+                                                "openocd.exe").replace("\\", "/")
+        debug_cfg["openocd_cfg"] = self.openocd_cfg.replace("\\", "/")
+        return debug_cfg
+
+    def generate(self):
+        self.get_opt()
+        project_cfg = dict()
+        project_cfg["links"] = dict()
+        project_cfg["name"] = self.builder.name
+        embarc_root = self.builder.embarc_root.replace("\\", "/")
+        project_cfg["embarc_root"] = embarc_root
+        if self.builder.source_dir != self.builder.build_dir:
+            project_cfg["source_dir"] = self.builder.source_dir.replace("\\", "/")
+        cproject_cfg_include = set()
+
+        for include in self.includes:
+            if include == embarc_root:
+                continue
+            if "embARC_generated" in include:
+                build_dir = self.builder.build_dir.replace("\\", "/")
+                virtual_dir = include.replace(build_dir, "")
+                cproject_cfg_include.add(virtual_dir)
+                continue
+            if include == ".":
+                cproject_cfg_include.add("")
+                continue
+            for file in os.listdir(include):
+                virtual_dir = include.replace(embarc_root, "embARC")
+                cproject_cfg_include.add(virtual_dir)
+                if os.path.isfile(os.path.join(include, file)):
+                    if os.path.splitext(file)[-1][1:] in self.file_types or (file in MAKEFILENAMES):
+                        if not project_cfg["links"].get(virtual_dir, None):
+                            project_cfg["links"][virtual_dir] = list()
+                        link = {"name": file,
+                                "dir": include.replace(embarc_root, "OSP_ROOT")}
+                        if link not in project_cfg["links"][virtual_dir]:
+                            project_cfg["links"][virtual_dir].append(
+                                {"name": file,
+                                 "dir": include.replace(embarc_root, "OSP_ROOT")}
+                            )
+        exporter = Exporter(self.builder.toolchain)
+        logger.info("""Start to generate IDE project accroding to
+                        templates (.project.tmpl and .cproject.tmpl)""")
+        exporter.gen_file_jinja(
+            "project.tmpl", project_cfg, ".project", self.builder.build_dir
+        )
+
+        cproject_cfg = self.get_cproject_cfg()
+        cproject_cfg["includes"] = list(cproject_cfg_include)
+        exporter.gen_file_jinja(
+            ".cproject.tmpl", cproject_cfg, ".cproject", self.builder.build_dir
+        )
+
+        debug_cfg = self.get_debug_cfg()
+        debug_cfg["core"] = cproject_cfg["core"]
+        debug_cfg["board"] = self.builder.platform.name
+        debug_cfg["bd_ver"] = self.builder.platform.version
+        exporter.gen_file_jinja(
+            ".launch.tmpl", debug_cfg, "%s-%s.launch" % (debug_cfg["name"], self.builder.platform.core), self.builder.build_dir
+        )
+        logger.info(
+            "Open ARC GNU IDE (version) Eclipse \
+            - >File >Open Projects from File System >Paste\n{}".format(
+                self.builder.build_dir
+            )
+        )
