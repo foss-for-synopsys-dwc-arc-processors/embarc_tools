@@ -36,8 +36,6 @@ setup(
     ),
     install_requires=[
         'PyYAML',
-        'colorama',
-        'PrettyTable',
         'Jinja2',
         'beautifulsoup4',
         'GitPython'
