@@ -48,21 +48,21 @@ LIB_SEL ?= {{LIB_SEL}}
 #
 # root dir of embARC
 #
-EMBARC_ROOT = {{EMBARC_OSP_ROOT}}
+EMBARC_ROOT = {{EMBARC_ROOT}}
 
-MID_SEL = {{MIDDLEWARE}}
+MID_SEL = common {{MIDDLEWARE}}
 
 # application source dirs
-APPL_CSRC_DIR = {{APPL_CSRC_DIR}}
-APPL_ASMSRC_DIR = {{APPL_ASMSRC_DIR}}
+APPL_CSRC_DIR = {{APPL_CSRC_DIR | replace(":", "\:")}}
+APPL_ASMSRC_DIR = {{APPL_ASMSRC_DIR | replace(":", "\:")}}
 
 # application include dirs
-APPL_INC_DIR = {{APPL_INC_DIR}}
+APPL_INC_DIR = {{APPL_INC_DIR | replace(":", "\:")}}
 
 # application defines
-APPL_DEFINES = {{APPL_DEFINES}}
+APPL_DEFINES = {{APPL_DEFINES | replace(":", "\:")}}
 
-EXTRA_CSRCDIR += {{EXTRA_CSRCDIR}}
+EXTRA_CSRCDIR += {{EXTRA_CSRCDIR | replace(":", "\:")}}
 # include current project makefile
 COMMON_COMPILE_PREREQUISITES += makefile
 

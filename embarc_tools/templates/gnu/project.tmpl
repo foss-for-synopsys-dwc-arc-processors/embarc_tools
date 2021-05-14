@@ -20,37 +20,40 @@
 	</buildSpec>
 	<natures>
 		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
 	<linkedResources>
-		{% for path in virtual_folders %}
+		{% if source_dir %}
 		<link>
-			<name>{{path}}</name>
+			<name>application</name>
+			<type>2</type>
+			<location>{{source_dir}}</location>
+		</link>
+		{% endif %}
+		<link>
+			<name>embARC</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
-		{% endfor %}
-		{% for path in links_folder %}
+    {% for group_name,files in links.items() %}
 		<link>
-			<name>embARC/{{path}}</name>
+			<name>{{group_name}}</name>
 			<type>2</type>
-			<locationURI>OSP_ROOT/{{path}}</locationURI>
-		</link>
-		{% endfor %}
-		{% for path in links_file %}
+			<locationURI>virtual:/virtual</locationURI>
+		</link> {% for file in files %}
 		<link>
-			<name>embARC/{{path}}</name>
+			<name>{{group_name}}/{{file.name}}</name>
 			<type>1</type>
-			<locationURI>OSP_ROOT/{{path}}</locationURI>
+			<locationURI>{{file.dir}}/{{file.name}}</locationURI>
 		</link>
-		{% endfor %}
-
+    {% endfor %}{% endfor %}
 	</linkedResources>
 	<variableList>
 		<variable>
 			<name>OSP_ROOT</name>
-			<value>file:/{{root}}</value>
+			<value>file:/{{embarc_root}}</value>
 		</variable>
 	</variableList>
 </projectDescription>
