@@ -50,6 +50,7 @@ def mkdir(path):
 
 def delete_dir_files(directory, dir=False):
     """ A function that does rm -rf
+
     Positional arguments:
     directory - the directory to remove
     """
@@ -156,6 +157,7 @@ def merge_recursive(*args):
 
 def import_submodules(package, recursive=True):
     """ Import all submodules of a module, recursively, including subpackages
+
     :param package: package (name or actual module)
     :type package: str | module
     :rtype: dict[str, types.ModuleType]

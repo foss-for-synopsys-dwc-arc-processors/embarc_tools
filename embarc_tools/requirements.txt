@@ -1,4 +1,5 @@
+PyYAML
+colorama
+PrettyTable
 Jinja
 psutil
-GitPython
-beautifulsoup4
