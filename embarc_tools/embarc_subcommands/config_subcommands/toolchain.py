@@ -1,5 +1,6 @@
 from __future__ import print_function, division, unicode_literals
 import sys
+import os
 import logging
 from ...settings import get_input, SUPPORT_TOOLCHAIN
 from ...osp import osp
@@ -10,62 +11,46 @@ logger = logging.getLogger("toolchain - gnu")
 logger.setLevel(logging.DEBUG)
 
 help = "Get, set toolchain configuration options."
-usage = ("\n    embarc config toolchain [--version] [--download] gnu\n"
-         "    embarc config toolchain mw\n"
-         "    embarc config toolchain --set <toolchain>\n")
 
 
 def run(args, remainder=None):
-    if len(remainder) == 1 and remainder[0] in SUPPORT_TOOLCHAIN:
-        gnu_verion = gnu.Gnu.check_version()
-        mw_verion = metaware.Mw.check_version()
-        toolchain = remainder[0]
-        if toolchain == "gnu":
-            if gnu_verion:
-                logger.info("Current GNU verion: {}".format(gnu_verion))
-            else:
-                toolchain_class = gnu.Gnu()
-                input_ = None
-                if not args.download:
-                    input_ = get_input("[embARC] Download the latest gnu [Y/N]")
-                if input_ in ["Y", "y", "yes"]:
-                    input_ = True
-                if input_ or args.download:
-                    tgz_path = toolchain_class.download(version=args.version, path=args.download_path)
-                    logger.info("Download it to : {}, please install it and set environment.".format(tgz_path))
-                else:
-                    logger.info("You can get GNU Toolchain from (%s)" % (toolchain_class.root_url))
-
-        elif toolchain == "mw":
-            if mw_verion:
-                logger.info("Current MetaWare version: {}".format(mw_verion))
-            else:
-                logger.info("There is no MetaWare in this platform, please install it")
+    gnu_toolchain = gnu.GNU()
+    mw_toolchain = metaware.Mw()
+    if args.version:
+        if not gnu_toolchain.exe:
+            logger.info("can't find gnu toolchain from current platform")
         else:
-            logger.error("This toolchain {} is not supported now".format(toolchain))
-            sys.exit(1)
-    elif not remainder:
-        if args.set:
-            if args.set in SUPPORT_TOOLCHAIN:
-                logger.info("Set %s as global TOOLCHAIN" % args.set)
-                global_cfg = read_json(osp.GLOBAL_CFG_FILE)
-                global_cfg["TOOLCHAIN"] = args.set
-                generate_json(global_cfg, osp.GLOBAL_CFG_FILE)
-            else:
-                logger.error("Only support GNU and MetaWare now")
+            version = gnu_toolchain.check_version()
+            logger.info("current GNU version: {}".format(version))
+        if not mw_toolchain.exe:
+            logger.info("can't find Metaware toolchain from current platform")
         else:
-            logger.error("usage: " + usage)
-    else:
-        logger.error("usage: " + usage)
-
-
+            version = mw_toolchain.check_version()
+            logger.info("current Metaware version: {}".format(version))
+    if args.download:
+        if not remainder:
+            directory = os.getcwd()
+        else:
+            directory = remainder[0] or os.getcwd()
+        version = args.download
+        tgz_path = gnu_toolchain.download(version=version, path=directory)
+        logger.info("download it to : {}, please install it and set environment.".format(tgz_path))
+    if args.set:
+        if args.set in SUPPORT_TOOLCHAIN:
+            logger.info("set %s as global TOOLCHAIN" % args.set)
+            global_cfg = read_json(osp.GLOBAL_CFG_FILE)
+            global_cfg["TOOLCHAIN"] = args.set
+            generate_json(global_cfg, osp.GLOBAL_CFG_FILE)
+        else:
+            logger.error("only support GNU and MetaWare now")
+        
 def setup(subparsers):
     subparser = subparsers.add_parser('toolchain', help=help)
-    subparser.usage = usage
-    subparser.add_argument(
-        "--version", action='store_true', help="Choose toolchain version.")
-    subparser.add_argument(
-        "--download", action='store_true', help="Downlad the latested toolchain only support gnu.")
-    subparser.add_argument(
+    mutualex_group = subparser.add_mutually_exclusive_group()
+    mutualex_group.add_argument(
+        "--version", action='store_true', help="Show the version of supporte toolchains")
+    mutualex_group.add_argument(
+        "--download", help="Downlad the specify version of toolchain only support gnu.")
+    mutualex_group.add_argument(
         "--set", help="Set a toolchain as global setting.")
     subparser.set_defaults(func=run)

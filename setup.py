@@ -9,6 +9,7 @@ def my_test_suite():
 
 
 with open('embarc_tools/version.py', 'r') as f:
+    __version__ = None
     exec(f.read())
 
 setup(

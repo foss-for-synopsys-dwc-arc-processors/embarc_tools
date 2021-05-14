@@ -9,5 +9,5 @@ from embarc_tools.utils import cd, getcwd
 def test_toolchain_commands(tmpdir, get_osp):
     testdir = tmpdir.mkdir("test")
     with cd(testdir.strpath):
-        runcmd(["config", "toolchain", "--version", "gnu"])
+        runcmd(["config", "toolchain", "--version"])
         runcmd(["config", "toolchain", "--set", "gnu"])
