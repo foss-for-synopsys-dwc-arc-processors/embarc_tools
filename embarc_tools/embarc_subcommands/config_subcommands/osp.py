@@ -4,8 +4,6 @@ import sys
 import logging
 from ...osp import osp
 
-logger = logging.getLogger("subcommand - osp")
-logger.setLevel(logging.DEBUG)
 
 help = "Get, set or unset osp configuration."
 
@@ -21,7 +19,7 @@ def run(args, remainder=None):
     osppath = osp.OSP()
     if args.add:
         if args.local and (args.manifest_url or args.manifest_rev):
-            logger.error("--local cannot be combined with -m or --mr")
+            logging.error("--local cannot be combined with -m or --mr")
             sys.exit(1)
         if args.local:
             osppath.local(args.name, args.local)
@@ -31,29 +29,29 @@ def run(args, remainder=None):
             osppath.create(args.add, args.manifest_url, rev, dest)
     elif args.rename:
         if len(remainder) != 1:
-            logger.error("usage: embarc config osp --rename <old> <new>")
+            logging.error("usage: embarc config osp --rename <old> <new>")
             sys.exit(1)
         else:
             old = args.directory
             new = remainder[0]
-            logger.info("rename {} to {}".format(old, new))
+            logging.info("rename {} to {}".format(old, new))
             osppath.rename(old, new)
             args.list = True
     elif args.remove:
         name = args.remove
-        logger.info("remove {} ".format(name))
+        logging.info("remove {} ".format(name))
         osppath.remove(name)
         args.list = True
     elif args.set:
-        logger.info("set %s as global EMBARC_ROOT" % args.set)
+        logging.info("set %s as global EMBARC_ROOT" % args.set)
         osppath.set_global(args.set)
     else:
         if remainder:
-            logger.error("usage: " + usage)
+            logging.error("usage: " + usage)
             sys.exit(1)
 
     if args.list:
-        logger.info("current recored embARC source code")
+        logging.info("current recored embARC source code")
         osppath.list()
 
 

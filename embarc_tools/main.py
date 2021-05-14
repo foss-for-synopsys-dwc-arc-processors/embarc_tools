@@ -10,11 +10,8 @@ from embarc_tools import embarc_subcommands
 from embarc_tools.version import __version__
 from embarc_tools.utils import import_submodules
 
-logger = logging.getLogger("main")
-ch = logging.StreamHandler()
-formatter = logging.Formatter('%(levelname)-7s - %(message)s')
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
+logging.basicConfig(format='%(levelname)-7s - %(message)s', level=logging.INFO)
+
 
 SUBCOMMANDS = import_submodules(embarc_subcommands, recursive=False)
 ver = __version__
@@ -51,7 +48,7 @@ def main():
     try:
         return args.func(args, remainder)
     except Exception as e:
-        logger.info(e)
+        logging.info(e)
         return parser.print_help()
 
 
@@ -59,5 +56,5 @@ if __name__ == '__main__':
     try:
         main()
     except (KeyboardInterrupt):
-        logger.info("Terminate batch job")
+        logging.info("Terminate batch job")
         sys.exit(255)

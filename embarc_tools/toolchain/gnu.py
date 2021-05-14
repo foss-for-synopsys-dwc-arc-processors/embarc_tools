@@ -18,9 +18,6 @@ from distutils.spawn import find_executable
 from ..toolchain import ARCtoolchain
 from ..utils import download_file, extract_file, getcwd, mkdir, delete_dir_files
 
-logger = logging.getLogger("toolchain - gnu")
-logger.setLevel(logging.DEBUG)
-
 
 class Gnu(ARCtoolchain):
     '''
@@ -48,13 +45,13 @@ class Gnu(ARCtoolchain):
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             if output is None:
-                logger.waring("can not execute {}".format(cmd[0]))
+                logging.waring("can not execute {}".format(cmd[0]))
                 return None
             version = re.search(r"[0-9]*\.[0-9]*", output.decode("utf-8")).group(0)
             if version:
                 return version
         except subprocess.CalledProcessError as ex:
-            logger.error("Fail to run command {}".format(cmd))
+            logging.error("Fail to run command {}".format(cmd))
             sys.exit(ex.output.decode("utf-8"))
 
     def _set_version(self):
@@ -85,12 +82,12 @@ class Gnu(ARCtoolchain):
         if not os.path.exists(path):
             mkdir(path)
         if pack_tgz in os.listdir(path):
-            logger.info("GNU tgz already exists")
+            logging.info("GNU tgz already exists")
         else:
-            logger.info("Download from (%s)" % url)
+            logging.info("Download from (%s)" % url)
             result = download_file(url, gnu_tgz_path)
             if not result:
-                logger.error("Download gnu failed")
+                logging.error("Download gnu failed")
                 sys.exit(1)
         self.pack = gnu_tgz_path
         return gnu_tgz_path
@@ -105,7 +102,7 @@ class Gnu(ARCtoolchain):
         if path is None:
             path = getcwd()
         if pack is None:
-            logger.warning("Please download gnu file first")
+            logging.warning("Please download gnu file first")
             return False
 
         else:
@@ -143,8 +140,8 @@ class Gnu(ARCtoolchain):
                 return latesturl
         except URLError as e:
             if hasattr(e, "code"):
-                logger.warning(e)
+                logging.warning(e)
             if hasattr(e, "reason"):
-                logger.warning(e.reason)
+                logging.warning(e.reason)
         else:
-            logger.warning("Can not get latest veriosn Gnu")
+            logging.warning("Can not get latest veriosn Gnu")

@@ -8,8 +8,6 @@ from pathlib import Path
 from ..settings import get_input, is_embarc_base
 from ..utils import read_json, generate_json
 
-logger = logging.getLogger("osp")
-logger.setLevel(logging.DEBUG)
 
 CFG_ROOT = os.path.join(os.path.expanduser("~"), ".embarc_cli")
 GLOBAL_CFG_FILE = os.path.join(CFG_ROOT, "global_config.json")
@@ -42,7 +40,7 @@ class OSP(object):
             try:
                 generate_json(dict(), OSP_CFG)
             except Exception as e:
-                logger.error("Failed to create file {}, {}".format(OSP_CFG, e))
+                logging.error("Failed to create file {}, {}".format(OSP_CFG, e))
         if not os.path.exists(GLOBAL_CFG_FILE):
             try:
                 global_config = dict()
@@ -54,7 +52,7 @@ class OSP(object):
                 global_config["BUILD_CONFIG"]["CUR_CORE"] = str()
                 generate_json(global_config, GLOBAL_CFG_FILE)
             except Exception as e:
-                logger.error("Failed to create file {}, {}".format(GLOBAL_CFG_FILE, e))
+                logging.error("Failed to create file {}, {}".format(GLOBAL_CFG_FILE, e))
 
     @staticmethod
     def check_call(args, cwd=None):
@@ -69,7 +67,7 @@ class OSP(object):
         else:
             osp_root = path
         if not osp_root or not self.is_osp(osp_root):
-            logger.warning("{} is not a valid osp root".format(osp_root))
+            logging.warning("{} is not a valid osp root".format(osp_root))
             self.list()
             while True:
                 input_root = get_input("Choose osp root or set another path as osp root: ")
@@ -79,13 +77,13 @@ class OSP(object):
                     if info:
                         select_dir = info.get("directory", None)
                         if not self.is_osp(select_dir):
-                            logger.warning("{} is not a valid osp root, remove it".format(input_root))
+                            logging.warning("{} is not a valid osp root, remove it".format(input_root))
                             self.remove(input_root)
                             continue
                         input_root = info["directory"]
                 if not self.is_osp(input_root):
-                    logger.warning("What you choose is not a valid osp root")
-                    logger.warning("Please set a valid osp root or download embarc osp first")
+                    logging.warning("What you choose is not a valid osp root")
+                    logging.warning("Please set a valid osp root or download embarc osp first")
                     continue
 
                 break
@@ -94,29 +92,29 @@ class OSP(object):
 
     def local(self, name, dest):
         if not self.is_osp(dest):
-            logger.error("dest % is not a valid osp root" % (dest))
+            logging.error("dest % is not a valid osp root" % (dest))
             sys.exit(1)
         if Path(dest).exists():
             local_dir = Path(dest).resolve()
             cur_osp = read_json(self.osp_cfg)
             if cur_osp.get(name, None):
-                logger.error("%s already exists in %s" % (name, self.osp_cfg))
+                logging.error("%s already exists in %s" % (name, self.osp_cfg))
                 sys.exit(1)
             else:
                 cur_osp[name] = {"type": "local", "directory": local_dir}
                 generate_json(cur_osp, self.osp_cfg)
 
         else:
-            logger.error("Can't find {}".format(dest))
+            logging.error("Can't find {}".format(dest))
             sys.exit(1)
 
     def create(self, name, url, rev, dest):
         if Path(dest).exists():
-            logger.error("refusing to clone into existing location %s" % dest)
+            logging.error("refusing to clone into existing location %s" % dest)
             sys.exit(1)
         cur_osp = read_json(self.osp_cfg)
         if cur_osp.get(name, None):
-            logger.error("%s already exists in %s" % (name, self.osp_cfg))
+            logging.error("%s already exists in %s" % (name, self.osp_cfg))
             sys.exit(1)
         try:
             self.check_call(('git', 'init', dest))
@@ -143,7 +141,7 @@ class OSP(object):
             else:
                 self.check_call(('git', 'checkout', 'FETCH_HEAD'), cwd=dest)
         except subprocess.CalledProcessError:
-            logger.error("Failed to clone osp from {}:{}".format(url, rev))
+            logging.error("Failed to clone osp from {}:{}".format(url, rev))
             sys.exit(1)
         cur_osp[name] = {"type": "git", "source": url, "rev": rev, "directory": dest}
         generate_json(cur_osp, self.osp_cfg)
@@ -154,7 +152,7 @@ class OSP(object):
             cur_osp.pop(name)
             generate_json(cur_osp, self.osp_cfg)
         else:
-            logger.error("no such osp %s" % (name))
+            logging.error("no such osp %s" % (name))
             sys.exit(1)
 
     def rename(self, old, new):
@@ -164,15 +162,15 @@ class OSP(object):
             cur_osp.pop(old)
             generate_json(cur_osp, self.osp_cfg)
         else:
-            logger.error("no such osp %s" % (old))
+            logging.error("no such osp %s" % (old))
             sys.exit(1)
 
     def list(self):
         cur_osp = read_json(self.osp_cfg)
         if cur_osp:
-            logger.info("current recored embarc-root")
+            logging.info("current recored embarc-root")
             for name, info in cur_osp.items():
-                logger.info("{:<5} {:<50}".format(name, info["directory"]))
+                logging.info("{:<5} {:<50}".format(name, info["directory"]))
             return cur_osp
 
     def set_global(self, name):
@@ -186,5 +184,5 @@ class OSP(object):
                 cur_global["EMBARC_ROOT"] = cur_osp[name]["directory"]
                 generate_json(cur_global, self.global_cfg_file)
             else:
-                logger.error("no such osp %s" % (name))
+                logging.error("no such osp %s" % (name))
                 sys.exit(1)

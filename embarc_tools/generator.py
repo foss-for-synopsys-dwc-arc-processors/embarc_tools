@@ -1,13 +1,8 @@
 from __future__ import print_function, unicode_literals
 import os
-import logging
 from os.path import join, dirname, abspath, exists
 from jinja2 import FileSystemLoader
 from jinja2.environment import Environment
-
-
-logger = logging.getLogger("Ide generator")
-logger.setLevel(logging.DEBUG)
 
 
 class Exporter(object):

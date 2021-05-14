@@ -7,9 +7,6 @@ import logging
 import subprocess
 from ..toolchain import ARCtoolchain
 
-logger = logging.getLogger("toolchain - metaware")
-logger.setLevel(logging.DEBUG)
-
 
 class Mw(ARCtoolchain):
     version = "2017.09"
@@ -28,13 +25,13 @@ class Mw(ARCtoolchain):
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             if output is None:
-                logger.waring("can not execute {}".format(cmd[0]))
+                logging.waring("can not execute {}".format(cmd[0]))
                 return None
             version = re.search(r"[0-9]*\.[0-9]*", output.decode("utf-8")).group(0)
             if version:
                 return version
         except subprocess.CalledProcessError as ex:
-            logger.error("Fail to run command {}".format(cmd))
+            logging.error("Fail to run command {}".format(cmd))
             sys.exit(ex.output.decode("utf-8"))
 
     def _set_version(self):

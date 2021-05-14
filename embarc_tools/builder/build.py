@@ -18,10 +18,6 @@ from ..builder import secureshield
 from ..generator import Exporter
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("builder")
-
-
 class embARC_Builder(object):
     def __init__(self, source_dir, build_dir,
                  board=None, board_version=None,
@@ -57,7 +53,7 @@ class embARC_Builder(object):
                 self.platform.name = self.cache_configs["BOARD"]
         if not self.platform.name:
             if not self.embarc_root:
-                logger.error("unable to determine a supported board")
+                logging.error("unable to determine a supported board")
                 sys.exit(1)
             else:
                 for file in glob.glob(os.path.join(self.embarc_root, "board", "*", "*.mk")):
@@ -65,7 +61,7 @@ class embARC_Builder(object):
                         self.platform.name = os.path.splitext(os.path.basename(file))[0]
                         break
                     except RuntimeError as e:
-                        logger.error("E: failed to find a board. %s" % e)
+                        logging.error("E: failed to find a board. %s" % e)
         if not self.platform.version:
             if self.cache_configs.get("BD_VER", None):
                 self.platform.version = self.cache_configs["BD_VER"]
@@ -76,7 +72,7 @@ class embARC_Builder(object):
                 self.platform.core = self.cache_configs["CUR_CORE"]
         if not self.platform.core:
             self.platform.core = self.platform.get_cores(self.platform.version, self.source_dir, self.embarc_root)[0]
-        logger.info("platform: {}".format(self.platform))
+        logging.info("platform: {}".format(self.platform))
         self.cache_configs["BOARD"] = self.platform.name
         self.cache_configs["BD_VER"] = self.platform.version
         self.cache_configs["CUR_CORE"] = self.platform.core
@@ -84,7 +80,7 @@ class embARC_Builder(object):
     def check_source_dir(self):
         app_normpath = os.path.abspath(self.source_dir)
         if not os.path.isdir(app_normpath):
-            logger.error(f"Cannot find folder {app_normpath}")
+            logging.error(f"Cannot find folder {app_normpath}")
             sys.exit(1)
         current_makefile = None
         for makename in MAKEFILENAMES:
@@ -92,12 +88,12 @@ class embARC_Builder(object):
                 current_makefile = os.path.join(app_normpath, makename)
                 break
         if not current_makefile:
-            logger.error("Cannot find makefile")
+            logging.error("Cannot find makefile")
             sys.exit(1)
         else:
             is_makefile_valid, embarc_root, name = is_embarc_makefile(current_makefile)
             if not is_makefile_valid:
-                logger.error("makefile {current_makefile} is invalid")
+                logging.error("makefile {current_makefile} is invalid")
                 sys.exit(1)
             else:
                 self.embarc_root = os.path.abspath(os.path.join(self.source_dir, embarc_root))
@@ -105,37 +101,37 @@ class embARC_Builder(object):
         self.source_dir = app_normpath
 
     def setup_build(self):
-        logger.info("setting up build configurations ...")
+        logging.info("setting up build configurations ...")
         if not self.build_dir:
-            logger.error("unable to determine the build folder, check the specified build directory")
+            logging.error("unable to determine the build folder, check the specified build directory")
             sys.exit(1)
         if os.path.exists(self.build_dir):
             if not os.path.isdir(self.build_dir):
-                logger.error("build directory {} exists and is not a directory".format(self.build_dir))
+                logging.error("build directory {} exists and is not a directory".format(self.build_dir))
                 sys.exit(1)
         else:
             os.makedirs(self.build_dir, exist_ok=False)
         self.check_source_dir()
-        logger.info("application: {}".format(self.source_dir))
+        logging.info("application: {}".format(self.source_dir))
         if os.path.exists(self.embarc_config):
-            logger.info("get cached config from {}".format(self.embarc_config))
+            logging.info("get cached config from {}".format(self.embarc_config))
             self.cache_configs = read_json(self.embarc_config)
         if self.cache_configs.get("EMBARC_ROOT", None):
             if is_embarc_base(self.cache_configs["EMBARC_ROOT"]):
                 self.embarc_root = self.cache_configs["EMBARC_ROOT"]
-                logger.info("embARC root: {}".format(self.embarc_root))
+                logging.info("embARC root: {}".format(self.embarc_root))
         self.cache_configs["EMBARC_ROOT"] = self.embarc_root
         self.find_platform()
         self.toolchain = self.toolchain or self.cache_configs.get("TOOLCHAIN", None)
         if not self.toolchain:
-            logger.error("unable to determine build toolchain")
+            logging.error("unable to determine build toolchain")
             sys.exit(1)
-        logger.info("toolchain: {}".format(self.toolchain))
+        logging.info("toolchain: {}".format(self.toolchain))
         self.cache_configs["TOOLCHAIN"] = self.toolchain
         secureshield_config = secureshield.common_check(
             self.toolchain, self.platform.name, self.source_dir)
         if secureshield_config:
-            logger.info("found secureshield configurations")
+            logging.info("found secureshield configurations")
             self.secureshield_config = secureshield_config
 
     def terminate(self, proc):
@@ -159,7 +155,7 @@ class embARC_Builder(object):
         log_out_fp.close()
 
     def do_build(self, command):
-        logger.info("start to build application\n")
+        logging.info("start to build application\n")
         env = os.environ.copy()
 
         with subprocess.Popen(command, stdout=subprocess.PIPE,
@@ -188,7 +184,7 @@ class embARC_Builder(object):
                               "%s_%s" % (self.toolchain, self.platform.core),
                               "%s_%s_%s.elf" % (self.name, self.toolchain, self.platform.core))
         if not os.path.exists(kernel):
-            logger.error("Can't find the kernel file {}".format(kernel))
+            logging.error("Can't find the kernel file {}".format(kernel))
             sys.exit(1)
         elf = ELFFile(open(kernel, "rb"))
         for section in elf.iter_sections():
@@ -220,7 +216,7 @@ class embARC_Builder(object):
                     # Read only data
                     rom_addr_ranges.append(bound)
                     rom_size += size
-        logger.info("rom total: {:<10}  ram total {:<10}".format(rom_size, ram_size))
+        logging.info("rom total: {:<10}  ram total: {:<10}".format(rom_size, ram_size))
 
     def build_target(self, target):
         self.setup_build()
@@ -236,7 +232,7 @@ class embARC_Builder(object):
         if self.extra_build_opt:
             make_opts.extend(self.extra_build_opt)
         self.target = target
-        logger.info("Build target: {}".format(target))
+        logging.info("build target: {}".format(target))
         if target == "clean":
             self.clean()
             return
@@ -251,18 +247,19 @@ class embARC_Builder(object):
             make_opts.append(self.target)
             self.do_build(make_opts)
         build_time = time.time() - start_time
-        print("\n")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
         if not self.terminated and self.returncode != 0:
-            logger.error("command failed: {}".format(" ".join(make_opts)))
+            logging.error("command failed: {}".format(" ".join(make_opts)))
             self.status = "failed"
         elif self.terminated:
-            logger.error("command timeout: {}".format(" ".join(make_opts)))
+            logging.error("command timeout: {}".format(" ".join(make_opts)))
             self.status = "timeout"
         else:
             self.status = "passed"
 
         if self.status == "passed" and self.target in ["elf", "all"]:
-            logger.info("command completed in: ({})s  ".format(build_time))
+            logging.info("command completed in: ({})s  ".format(build_time))
             self.get_size()
         if not self.embarc_config:
             self.embarc_config = os.path.join(self.build_dir, "config.json")
@@ -277,7 +274,7 @@ class embARC_Builder(object):
     def clean(self):
         target = os.path.join(self.build_dir,
                               "obj_%s_%s" % (self.platform.name, self.platform.version))
-        logger.info("remove directory {}".format(target))
+        logging.info("remove directory {}".format(target))
         delete_dir_files(target, True)
 
     def distclean(self, app):
@@ -338,7 +335,7 @@ class EclipseARC(object):
                         continue
 
         except subprocess.CalledProcessError as ex:
-            logger.error("Fail to run command {}".format(command))
+            logging.error("Fail to run command {}".format(command))
             sys.exit(ex.output.decode("utf-8"))
 
     def get_cproject_cfg(self):
@@ -371,7 +368,7 @@ class EclipseARC(object):
         debug_cfg["name"] = self.builder.name
         nsimdrv = find_executable("nsimdrv")
         if not nsimdrv:
-            logger.error("can not find nsim")
+            logging.error("can not find nsim")
             sys.exit(1)
         debug_cfg["nsim"] = nsimdrv
         debug_cfg["nsim_tcf"] = os.path.join(self.builder.embarc_root,
@@ -380,7 +377,7 @@ class EclipseARC(object):
         debug_cfg["nsim_port"] = 49105
         gnu_executable = find_executable("arc-elf32-gcc")
         if not gnu_executable:
-            logger.error("can not find arc-elf32-gcc")
+            logging.error("can not find arc-elf32-gcc")
             sys.exit(1)
         debug_cfg["openocd_bin"] = os.path.join(os.path.dirname(gnu_executable),
                                                 "openocd.exe").replace("\\", "/")
@@ -424,7 +421,7 @@ class EclipseARC(object):
                                  "dir": include.replace(embarc_root, "OSP_ROOT")}
                             )
         exporter = Exporter(self.builder.toolchain)
-        logger.info("""Start to generate IDE project accroding to
+        logging.info("""Start to generate IDE project accroding to
                         templates (.project.tmpl and .cproject.tmpl)""")
         exporter.gen_file_jinja(
             "project.tmpl", project_cfg, ".project", self.builder.build_dir
@@ -443,7 +440,7 @@ class EclipseARC(object):
         exporter.gen_file_jinja(
             ".launch.tmpl", debug_cfg, "%s-%s.launch" % (debug_cfg["name"], self.builder.platform.core), self.builder.build_dir
         )
-        logger.info(
+        logging.info(
             "Open ARC GNU IDE (version) Eclipse \
             - >File >Open Projects from File System >Paste\n{}".format(
                 self.builder.build_dir

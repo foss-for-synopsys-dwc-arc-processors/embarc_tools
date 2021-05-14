@@ -7,8 +7,6 @@ from ..generator import Exporter
 from ..osp import osp, platform
 from ..utils import generate_json, read_json
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("subcommand - new")
 
 help = "Create a new application"
 description = ("Options can be input by command line parameter. \n")
@@ -36,7 +34,7 @@ def get_osp_root(input_root=None):
                 cur_global_cfg["EMBARC_ROOT"] = embarc_root
                 generate_json(cur_global_cfg, osppath.global_cfg_file)
                 break
-            logger.error("What you choose is not a valid osp root")
+            logging.error("What you choose is not a valid osp root")
     return embarc_root
 
 
@@ -48,14 +46,14 @@ def find_platform(args, appl_dir, config):
             try:
                 boards = os.path.splitext(os.path.basename(file))
                 while True:
-                    logger.info("please choose board from {}" .format(boards))
+                    logging.info("please choose board from {}" .format(boards))
                     board = get_input("choose board: ")
                     if board not in boards:
                         continue
                     break
                 break
             except RuntimeError as e:
-                logger.error("E: failed to find a board. %s" % e)
+                logging.error("E: failed to find a board. %s" % e)
     plat = platform.Platform(board, args.bd_ver, args.core)
     config["BOARD"] = plat.name
     exporter = Exporter("application")
@@ -65,7 +63,7 @@ def find_platform(args, appl_dir, config):
     if not plat.version:
         versions = plat.get_versions(appl_dir, config["EMBARC_ROOT"])
         while True:
-            logger.info("please choose board version from {}".format(" ".join(versions)))
+            logging.info("please choose board version from {}".format(" ".join(versions)))
             plat.version = get_input("choose version: ")
             if plat.version not in versions:
                 continue
@@ -75,13 +73,13 @@ def find_platform(args, appl_dir, config):
     if not plat.core:
         cores = plat.get_cores(plat.version, appl_dir, config["EMBARC_ROOT"])
         while True:
-            logger.info("please choose board core from {}".format(" ".join(cores)))
+            logging.info("please choose board core from {}".format(" ".join(cores)))
             plat.core = get_input("choose version: ")
             if plat.core not in cores:
                 continue
             break
     config["CUR_CORE"] = plat.core
-    logger.info("platform: {}".format(plat))
+    logging.info("platform: {}".format(plat))
     return config
 
 
@@ -91,27 +89,27 @@ def run(args, remainder=None):
     os.makedirs(appl_dir, exist_ok=True)
 
     config["APPL"] = os.path.basename(appl_dir)
-    logger.info("application: {} in {}".format(config["APPL"], appl_dir))
+    logging.info("application: {} in {}".format(config["APPL"], appl_dir))
     config["APPL_CSRC_DIR"] = "."
     config["APPL_ASMSRC_DIR"] = "."
     config["APPL_INC_DIR"] = "."
 
     config["EMBARC_ROOT"] = get_osp_root(args.embarc_root)
-    logger.info("embarc_root: {}".format(config["EMBARC_ROOT"]))
+    logging.info("embarc_root: {}".format(config["EMBARC_ROOT"]))
 
-    logger.info("toolchain: {}".format(args.toolchain))
+    logging.info("toolchain: {}".format(args.toolchain))
     config["TOOLCHAIN"] = args.toolchain
 
     config = find_platform(args, appl_dir, config)
 
     generate_json(config, os.path.join(appl_dir, "build.json"))
-    logger.info("cache build config into %s" % os.path.join(appl_dir, "build.json"))
+    logging.info("cache build config into %s" % os.path.join(appl_dir, "build.json"))
     if args.build_opt:
-        logger.info("parse extra build options")
+        logging.info("parse extra build options")
         for opt in args.build_opt:
             if "=" in opt:
                 (key, value) = opt.split("=")
-                logger.info("{}: {}".format(key, value))
+                logging.info("{}: {}".format(key, value))
                 if key in ["APPL_CSRC_DIR", "APPL_ASMSRC_DIR", "APPL_INC_DIR"]:
                     config[key] = "{} {}".format(config[key], value.replace("\\", "/"))
                 else:
@@ -120,7 +118,7 @@ def run(args, remainder=None):
     exporter = Exporter("application")
     exporter.gen_file_jinja("makefile.tmpl", config, "makefile", appl_dir)
     exporter.gen_file_jinja("main.c.tmpl", config, "main.c", appl_dir)
-    logger.info("finish to genrate application")
+    logging.info("finish to genrate application")
 
 
 def setup(subparsers):

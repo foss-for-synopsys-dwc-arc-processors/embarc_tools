@@ -3,9 +3,6 @@ import re
 import subprocess
 import logging
 
-logger = logging.getLogger("Platform")
-logger.setLevel(logging.DEBUG)
-
 
 class Platform:
     def __init__(self, name, version=None, core=None):
@@ -44,7 +41,7 @@ class Platform:
                     result = re.findall(r"\d+", line)
                     break
             if not result:
-                logger.error("Fail to run command {}".format(cmd))
+                logging.error("Fail to run command {}".format(cmd))
                 sys.exit(ex.output.decode("utf-8"))
 
         return result
@@ -75,7 +72,7 @@ class Platform:
                     result = searchObj.group(1).split()
                     break
             if not result:
-                logger.error("Fail to run command {}".format(cmd))
+                logging.error("Fail to run command {}".format(cmd))
                 sys.exit(ex.output.decode("utf-8"))
         return result
 
