@@ -9,7 +9,7 @@ from embarc_tools.utils import cd, getcwd
 def test_appconfig_commands(tmpdir, get_osp):
     testdir = tmpdir.mkdir("test")
     with cd(testdir.strpath):
-        runcmd(["new", "--quick"])
+        runcmd([ "new", "--board", "emsk", "--bd-ver", "22", "--core", "arcem7d", "--toolchain", "gnu", "-d", "helloworld"])
         app_path = os.path.join(getcwd(), "helloworld")
-        runcmd(["appconfig", "--path", app_path])
-        runcmd(["appconfig", "--path", app_path, "--toolchain", "gnu"])
+        runcmd(["appconfig", "--directory", app_path])
+        runcmd(["appconfig", "--directory", app_path, "--toolchain", "gnu"])

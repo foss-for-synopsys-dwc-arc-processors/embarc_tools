@@ -1,7 +1,4 @@
 from __future__ import print_function, division
-import os
-import pytest
-import subprocess
 from ..conftest import runcmd
 
 

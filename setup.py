@@ -9,6 +9,7 @@ def my_test_suite():
 
 
 with open('embarc_tools/version.py', 'r') as f:
+    __version__ = None
     exec(f.read())
 
 setup(
@@ -37,10 +38,11 @@ setup(
     install_requires=[
         'PyYAML',
         'colorama',
-        'PrettyTable',
         'Jinja2',
         'beautifulsoup4',
-        'GitPython'
+        'GitPython',
+        'pyelftools',
+        'psutil'
     ],
 
     include_package_data = True,
