@@ -1,8 +1,7 @@
 from __future__ import print_function, division, unicode_literals
-import sys
 import os
 import logging
-from ...settings import get_input, SUPPORT_TOOLCHAIN
+from ...settings import SUPPORT_TOOLCHAIN
 from ...osp import osp
 from ...toolchain import gnu, metaware
 from ...utils import read_json, generate_json
@@ -43,7 +42,8 @@ def run(args, remainder=None):
             generate_json(global_cfg, osp.GLOBAL_CFG_FILE)
         else:
             logger.error("only support GNU and MetaWare now")
-        
+
+  
 def setup(subparsers):
     subparser = subparsers.add_parser('toolchain', help=help)
     mutualex_group = subparser.add_mutually_exclusive_group()
