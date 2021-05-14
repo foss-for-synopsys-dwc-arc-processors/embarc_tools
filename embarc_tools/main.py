@@ -11,7 +11,10 @@ from embarc_tools.version import __version__
 from embarc_tools.utils import import_submodules
 
 logger = logging.getLogger("main")
-logging.basicConfig(level=logging.INFO)
+ch = logging.StreamHandler()
+formatter = logging.Formatter('%(levelname)-7s - %(message)s')
+ch.setLevel(logging.INFO)
+logger.addHandler(ch)
 
 SUBCOMMANDS = import_submodules(embarc_subcommands, recursive=False)
 ver = __version__
