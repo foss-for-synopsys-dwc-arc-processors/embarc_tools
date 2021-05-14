@@ -4,16 +4,14 @@ cache:
   directories:
   - ".cache/result"
   - ".cache/toolchain"
+  - ".cache/embarc_osp"
 env:
   global:
     - TOOLCHAIN_CACHE_FOLDER="$HOME/.cache/toolchain"
+    - EMBARC_OSP_CACHE_FOLDER="$HOME/.cache/embarc_osp"
     
 python:
-- '2.7'
 - '3.6'
-- '3.5'
-- '3.4'
-- pypy
 
 sudo: required
 dist: trusty
