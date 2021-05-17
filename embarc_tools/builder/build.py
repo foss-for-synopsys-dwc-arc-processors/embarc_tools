@@ -112,7 +112,7 @@ class embARC_Builder(object):
         else:
             os.makedirs(self.build_dir, exist_ok=False)
         self.check_source_dir()
-        logging.info("application: {}".format(self.source_dir))
+        logging.info("application: {}".format(self.source_dir.replace("\\", "/")))
         if os.path.exists(self.embarc_config):
             logging.info("get cached config from {}".format(self.embarc_config))
             self.cache_configs = read_json(self.embarc_config)
@@ -421,14 +421,14 @@ class EclipseARC(object):
                                  "dir": include.replace(embarc_root, "OSP_ROOT")}
                             )
         exporter = Exporter(self.builder.toolchain)
-        logging.info("""Start to generate IDE project accroding to
-                        templates (.project.tmpl and .cproject.tmpl)""")
+        logging.info("generating esclipse project description file ...")
         exporter.gen_file_jinja(
             "project.tmpl", project_cfg, ".project", self.builder.build_dir
         )
 
         cproject_cfg = self.get_cproject_cfg()
         cproject_cfg["includes"] = list(cproject_cfg_include)
+        logging.info("generating esclipse cdt into .cproject file ...")
         exporter.gen_file_jinja(
             ".cproject.tmpl", cproject_cfg, ".cproject", self.builder.build_dir
         )
@@ -437,12 +437,12 @@ class EclipseARC(object):
         debug_cfg["core"] = cproject_cfg["core"]
         debug_cfg["board"] = self.builder.platform.name
         debug_cfg["bd_ver"] = self.builder.platform.version
+        logging.info("generating esclipse launch configuration file ...")
         exporter.gen_file_jinja(
             ".launch.tmpl", debug_cfg, "%s-%s.launch" % (debug_cfg["name"], self.builder.platform.core), self.builder.build_dir
         )
         logging.info(
-            "Open ARC GNU IDE (version) Eclipse \
-            - >File >Open Projects from File System >Paste\n{}".format(
-                self.builder.build_dir
+            "open Eclipse - >File >Open Projects from File System >Paste\n{}".format(
+                self.builder.build_dir.replace("\\", "/")
             )
         )

@@ -5,10 +5,10 @@ import logging
 from ...osp import osp
 
 
-help = "Get, set or unset osp configuration."
+help = "get, set or unset osp configuration."
 
 usage = ("\n    embarc config osp --add <name> -m <url> --mr <rev> [<dest>]\n"
-         "\n    embarc config osp --add <name> --local [<dest>]\n"
+         "    embarc config osp --add <name> --local [<dest>]\n"
          "    embarc config osp --set <name>\n"
          "    embarc config osp --rename <oldname> <newname>\n"
          "    embarc config osp --remove <name>\n"
@@ -60,27 +60,27 @@ def setup(subparsers):
     subparser.usage = usage
     mutualex_group = subparser.add_mutually_exclusive_group()
     mutualex_group.add_argument(
-        "--add", help='fetch the remote source code and add it to osp.json')
-    subparser.add_argument('-m', '--manifest-url',
-                           help='''manifest repository URL to clone;
+        "--add", metavar='', help='add a local or remote osp source code named <name>')
+    subparser.add_argument('-m', '--manifest-url', metavar='',
+                           help='''osp repository url to clone;
                            cannot be combined with -l''')
-    subparser.add_argument('--mr', '--manifest-rev', dest='manifest_rev',
-                           help='''manifest revision to check out and use;
+    subparser.add_argument('--mr', '--manifest-rev', dest='manifest_rev', metavar='',
+                           help='''osp revision to check out and use;
                            cannot be combined with -l''')
     subparser.add_argument(
-        'directory', nargs='?', default=None,
+        'directory', nargs='?', default=None, metavar='',
         help='''with -l, the path to the local osp repository;
-        without it, the directory to create the workspace in (defaulting
-        to the current working directory in this case)''')
-    subparser.add_argument('-l', '--local', action='store_true',
-                           help="""add local existing directory to osp.json """)
+        without it, the directory to create the osp in (defaulting
+        to the current working directory)''')
+    subparser.add_argument('-l', '--local', metavar='',
+                           help="""local existing osp directory""")
     mutualex_group.add_argument(
-        "--rename", action='store_true', help="rename osp source code")
+        "--rename", action='store_true', help="rename existing osp source code")
     mutualex_group.add_argument(
         '-rm', '--remove', help="remove the specified osp source code", metavar='')
     subparser.add_argument(
-        '--list', action='store_true', help="show all recored embARC OSP source code")
+        '--list', action='store_true', help="show all recored osp source code")
     mutualex_group.add_argument(
-        '-s', '--set', help="set a global EMBARC_OSP_ROOT, make sure you have added it to osp.json", metavar='')
+        '-s', '--set', help="set a global EMBARC_ROOT, make sure you have added it to osp.json", metavar='')
 
     subparser.set_defaults(func=run)

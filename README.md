@@ -14,11 +14,13 @@ The basic workflow for embARC CLI is to:
 $ embarc -h
 usage: embarc [-h] [--version]             ...
 
-Command-line tool for embARC OSP - https://embarc.org/embarc_osp
-version 1.0.4
+            Command-line tool for embARC OSP - https://embarc.org/embarc_osp
+
+            version 1.1.0
 
 Use "embarc <command> -h|--help" for detailed help.
-Online manual and guide available at https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools
+
+            Online manual and guide available at https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools
 
 optional arguments:
   -h, --help   show this help message and exit
@@ -26,10 +28,10 @@ optional arguments:
 
 Commands:
 
-    new        Create a new application
-    build      Build application
     appconfig  Get or set application config
+    build      Build application
     config     Get, set or unset configuration options.
+    new        Create a new application
 ```
 ### Installation
 Windows and Linux support for embARC CLI.
@@ -62,11 +64,11 @@ $ pip uninstall embarc-cli
 ### Before you begin
 embARC CLI uses the user directory `Users/xxx/.embarc_cli` to save global settings. When you use embARC CLI, it will create two files:
 1. `Users/xxx/.embarc_cli/osp.json` including information about root paths of embARC OSP source code.
-2. `Users/xxx/.embarc_cli/global_config.json` including current global settings: `EMBARC_OSP_ROOT`,`TOOLCHAIN` and build configuration `BOARD`, `BD_VER` and `CUR_CORE`.
+2. `Users/xxx/.embarc_cli/global_config.json` including current global settings: `EMBARC_ROOT`,`TOOLCHAIN` and build configuration `BOARD`, `BD_VER` and `CUR_CORE`.
 ### Create a new application
 embARC CLI can create applications based on embARC Open Software Platform. A detailed command-specific help is available by using `embarc new --help`.
 
-When you create a new application, embARC CLI automatically imports the OSP from global settings if you haven't specify a OSP root path by `--osp_root`, if there is no `EMBARC_OSP_ROOT` in global settings, you need to input manually.
+When you create a new application, embARC CLI automatically imports the OSP from global settings if you haven't specify a OSP root path by `--embarc-root`, if there is no `EMBARC_ROOT` in global settings, you need to input manually.
 
 The arguments for `build` are:
 
@@ -75,233 +77,85 @@ The arguments for `build` are:
 - `--bd-ver` to select a board_ver.
 - `--core` to select a core.
 - `-t` or `--toolchain` to select a toolchain. The value can be `gnu`(GNU) or `mw`(MetaWare).
-- `-j` or `--parallel` to compile code in parallel.
 - `--target` to select the build target, the default target is `all`, you can selsect one from `[elf, bin, hex, size, opt, info, all, run, clean]`.
 - `-g` or `--export` to generate Eclipse IDE project file for your application.
-- `--app_config` to specify application configuration with a json file.
+- `--config` to specify application configuration with a json file, default is to look for build.json in build directory or source directory.
+- `--build-opt` to pass extra configurations to make command.
 
 Let's create an application named `helloworld` for embARC OSP:
 ```
-$ embarc new helloworld
-[embARC] Current osp root is: C:/Users/jingru/Documents/embarc/embarc_osp
-[embARC] Support boards : axs  emsk  hsdk  iotdk  nsim
-[embARC] Choose board: emsk
-[embARC] emsk support versions : 11  22  23
-[embARC] Choose board version: 11
-[embARC] emsk with versions 11 support cores : arcem4  arcem4cr16  arcem6  arcem6gp
-[embARC] choose core: arcem4
-[embARC] Support toolchains: gnu  mw
-[embARC] Choose toolchain: gnu
-[embARC] Current configuration
-+------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | EMBARC_OSP_ROOT                             | OLEVEL |
-+------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-| helloworld | emsk  | 11     | arcem4   | gnu       | C:\Users\jingru\Documents\embarc\embarc_osp | O3     |
-+------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-[embARC] Start to generate makefile and main.c
-[embARC] Finish generate makefile and main.c, and they are in C:\Users\jingru\Documents\embarc\testcli\helloworld
+$ embarc new --directory helloworld
+INFO    - application: helloworld in C:/Users/jingru/Documents/conda/helloworld
+INFO    - embarc_root: C:/Users/jingru/Documents/git/github/embarc_osp
+INFO    - toolchain: gnu
+INFO    - please choose board from axs emsdp emsk hsdk iotdk nsim
+choose board: emsk
+INFO    - please choose board version from 11 22 23
+choose version: 23
+INFO    - please choose board core from arcem7d arcem7d_em6 arcem11d_em7d arcem7d_em4 arcem9d arcem7d_em5d arcem11d arcem9d_em5d
+choose version: arcem9d
+INFO    - platform: <emsk version 23 core arcem9d on arc>
+INFO    - cache build config into C:/Users/jingru/Documents/conda/helloworld/build.json
+INFO    - finish to genrate application
 ```
 
-<span class="tips">**Tip:** If you haven't set a global `EMBARC_OSP_ROOT`, it will raise `Can't get osp root from global setting`.
-When you create application with `embarc new`, it will generate a file `embarc_app.json` recording the parameters:
+<span class="tips">**Tip:** If you haven't set a global `EMBARC_ROOT`, it will raise `Can't get osp root from global setting`.
+When you create application with `embarc new`, it will generate a file `build.json` recording the parameters:
 ```
 {
-    "APPL": "helloworld", 
-    "BOARD": "emsk", 
-    "BD_VER": "23", 
-    "CUR_CORE": "arcem7d", 
-    "TOOLCHAIN": "gnu", 
-    "EMBARC_OSP_ROOT": "C:/Users/jingru/Documents/embarc/embarc_osp", 
-    "OLEVEL": "O3"
+    "APPL": "helloworld",
+    "EMBARC_ROOT": "C:/Users/jingru/Documents/git/github/embarc_osp",
+    "TOOLCHAIN": "gnu",
+    "BOARD": "emsk",
+    "BD_VER": "23",
+    "CUR_CORE": "arcem9d"
 }
 ```
 
 ### Build your application
 Use the `embarc build` command to compile your code:
 ```
-$ embarc build
-[embARC] Read embarc_app.json
-[embARC] Build target: all
-[embARC] Current configuration
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| helloworld | emsk  | 23     | arcem7d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-[embARC] Build command: make BD_VER=23 TOOLCHAIN=gnu OLEVEL=O3 APPL=helloworld BOARD=emsk CUR_CORE=arcem7d all
-[embARC] Start to build application
-"Creating Directory    : " obj_emsk_23/gnu_arcem7d/application/.
-"Creating Directory    : " obj_emsk_23/gnu_arcem7d/arc
-"Creating Directory    : " obj_emsk_23/gnu_arcem7d/arc/startup
- ...
-"Copy TCF file C:/Users/jingru/Documents/embarc/embarc_osp/board/emsk/configs/23/tcf/arcem7d.tcf to obj_emsk_23/gnu_arcem7d/embARC_generated/arc.tcf"
-"Generate Metaware compiler argument file obj_emsk_23/gnu_arcem7d/embARC_generated/ccac.arg"
-"Generate ARC GNU compiler argument file obj_emsk_23/gnu_arcem7d/embARC_generated/gcc.arg"
-"Generate nSIM properties file obj_emsk_23/gnu_arcem7d/embARC_generated/nsim.props"
-"Generate Metaware Debugger argument file obj_emsk_23/gnu_arcem7d/embARC_generated/mdb.arg"
-"Generate ARC core config header file obj_emsk_23/gnu_arcem7d/embARC_generated/core_config.h"
-"Generate ARC core config assembler file obj_emsk_23/gnu_arcem7d/embARC_generated/core_config.s"
-"Generating Linkfile   : " obj_emsk_23/gnu_arcem7d/linker_gnu.ldf
-"Compiling             : " main.c
- ...
-"Archiving             : " obj_emsk_23/gnu_arcem7d/liblibclib.a
-"Archiving             : " obj_emsk_23/gnu_arcem7d/libembarc.a
-"Linking               : " obj_emsk_23/gnu_arcem7d/helloworld_gnu_arcem7d.elf
-[embARC] Completed in: (79.9449999332)s
-```
-To run examples in embARC OSP Source code, run `embarc_osp\example\baremetal\ble_rn4020` for instance:
-```
-$ embarc build run
-[embARC] Build target: run
-[embARC] Read makefile and get configuration
-[embARC] Run command make info
-[embARC] Current configuration
-+--------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL   | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
-+--------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| rn4020 | iotdk | 10     | arcem9d  | mw        | O2     | C:/Users/jingru/Documents/embarc/embarc_osp |
-+--------+-------+--------+----------+-----------+--------+---------------------------------------------+
-[embARC] Build command: make BD_VER=10 TOOLCHAIN=mw OLEVEL=O2 APPL=rn4020 BOARD=iotdk CUR_CORE=arcem9d run
-[embARC] Start to build application
-"Creating Directory    : " obj_iotdk_10/mw_arcem9d/application/.
-"Creating Directory    : " obj_iotdk_10/mw_arcem9d/arc
- ...
- "Compiling             : " ../../../library/clib/embARC_target.c
-"Archiving             : " obj_iotdk_10/mw_arcem9d/liblibclib.a
-"Archiving             : " obj_iotdk_10/mw_arcem9d/libembarc.a
-"Linking               : " obj_iotdk_10/mw_arcem9d/rn4020_mw_arcem9d.elf
-"Download & Run obj_iotdk_10/mw_arcem9d/rn4020_mw_arcem9d.elf"
-mdb -nooptions -nogoifmain -toggle=include_local_symbols=1 -hard -digilent     -run obj_iotdk_10/mw_arcem9d/rn4020_mw_arcem9d.elf
-[DIGILENT] This device supports JTAG7 scan formats.
-[DIGILENT] Device enumeration: #0 is `IoTDK'=DesignWare ARC SDP.
-[DIGILENT] We choose device  : #0 `IoTDK' from 1 possible devices.
-[DIGILENT] Product=507 variant=1 fwid=56 firmware-version=10f.
-[DIGILENT] It is possible to set the JTAG speed.
-[DIGILENT] Current speed is 10000000 Hz.
-[DIGILENT] Suppress these messages with environment variable DIG_VERBOSE=0.
-SmaRT Build Configuration Register: 0x10003 (stack size=64)
-```
-The Tera Term output:
-```
------------------------------------------------------------
- ____                                _ ____
-|  _ \ _____      _____ _ __ ___  __| | __ ) _   _
-| |_) / _ \ \ /\ / / _ \ '__/ _ \/ _` |  _ \| | | |
-|  __/ (_) \ V  V /  __/ | |  __/ (_| | |_) | |_| |
-|_|   \___/ \_/\_/ \___|_|  \___|\__,_|____/ \__, |
-                                             |___/
-                     _       _    ____   ____
-       ___ _ __ ___ | |__   / \  |  _ \ / ___|
-      / _ \ '_ ` _ \| '_ \ / _ \ | |_) | |
-     |  __/ | | | | | |_) / ___ \|  _ <| |___
-      \___|_| |_| |_|_.__/_/   \_\_| \_\\____|
-------------------------------------------------------------
+$ embarc build -d helloworld
+INFO    - setting up build configurations ...
+INFO    - application: C:\Users\jingru\Documents\conda\helloworld
+INFO    - get cached config from helloworld\build.json
+INFO    - embARC root: C:/Users/jingru/Documents/git/github/embarc_osp
+INFO    - platform: <emsk version 23 core arcem9d on arc>
+INFO    - toolchain: gnu
+INFO    - build target: all
+INFO    - start to build application
 
-embARC Build Time: Jan 18 2019, 16:18:26
-Compiler Version: Metaware, 4.2.1 Compatible Clang 6.0.1 (branches/release_60)
-n4020 test application
-state: INITIALIZING
-rx:CMD
-state: READY
-state: WAITING_FOR_AOK
-tx: SF,1
-rx:AOK
-state: READY
-state: WAITING_FOR_AOK
-tx: SN,embARC
-rx:AOK
-state: READY
-state: WAITING_FOR_AOK
- ...
-service uuid, skip it
-rx:  000102030405060708090A0B0C0D0E0F,001B,02,05
-rx:  000102030405060708090A0B0C0D0E0F,001C,10,02
-rx:  101112131415161718191A1B1C1D1E1F,001E,0A,05
-rx:END
-state: READY
-state: WAITING_FOR_AOK
-rx:AOK
-state: READY
-```
-You can specify parameters in two ways:
-1. Use `--xxx`:
-```
-$ embarc build  --board iotdk --bd-ver 10 --core arcem9d --target all
-[embARC] Read embarc_app.json
-[embARC] Build target: all
-[embARC] Current configuration
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| helloworld | iotdk | 10     | arcem9d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-[embARC] Build command: make BD_VER=10 TOOLCHAIN=gnu OLEVEL=O3 APPL=helloworld BOARD=iotdk CUR_CORE=arcem9d all
-[embARC] Start to build application
-"Creating Directory    : " obj_iotdk_10/gnu_arcem9d/application/.
- ...
-"Copy TCF file C:/Users/jingru/Documents/embarc/embarc_osp/board/iotdk/configs/10/tcf/arcem9d.tcf to obj_iotdk_10/gnu_arcem9d/embARC_generated/arc.tcf"
-"Generate Metaware compiler argument file obj_iotdk_10/gnu_arcem9d/embARC_generated/ccac.arg"
-"Generate ARC GNU compiler argument file obj_iotdk_10/gnu_arcem9d/embARC_generated/gcc.arg"
-"Generate nSIM properties file obj_iotdk_10/gnu_arcem9d/embARC_generated/nsim.props"
-"Generate Metaware Debugger argument file obj_iotdk_10/gnu_arcem9d/embARC_generated/mdb.arg"
-"Generate ARC core config header file obj_iotdk_10/gnu_arcem9d/embARC_generated/core_config.h"
-"Generate ARC core config assembler file obj_iotdk_10/gnu_arcem9d/embARC_generated/core_config.s"
-"Generating Linkfile   : " obj_iotdk_10/gnu_arcem9d/linker_gnu.ldf
-"Compiling             : " main.c
-"Compiling             : " C:/Users/jingru/Documents/embarc/embarc_osp/board/board.c
-"Compiling             : " C:/Users/jingru/Documents/embarc/embarc_osp/arc/startup/arc_cxx_support.c
- ...
-"Archiving             : " obj_iotdk_10/gnu_arcem9d/liblibclib.a
-"Archiving             : " obj_iotdk_10/gnu_arcem9d/libembarc.a
-"Linking               : " obj_iotdk_10/gnu_arcem9d/helloworld_gnu_arcem9d.elf
-[embARC] Completed in: (97.7479999065)s
-```
-2. Use `BOARD=iotdk BD_VER=10 CUR_CORE=arcem9d clean`, this is the default format when you build with `make` command:
-```
-$ embarc build BOARD=iotdk BD_VER=10 CUR_CORE=arcem9d clean
-[embARC] Read embarc_app.json
-[embARC] Build target: clean
-[embARC] Current configuration
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| helloworld | iotdk | 10     | arcem9d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-[embARC] Build command: make BD_VER=10 TOOLCHAIN=gnu OLEVEL=O3 APPL=helloworld BOARD=iotdk CUR_CORE=arcem9d clean
-[embARC] Start to build application
-"Clean Workspace For Selected Configuration : iotdk_10-gnu_arcem9d"
-C:\WINDOWS\system32\cmd.exe /C if exist  obj_iotdk_10\gnu_arcem9d   C:\WINDOWS\system32\cmd.exe /C rd /S /Q obj_iotdk_10\gnu_arcem9d
-C:\WINDOWS\system32\cmd.exe /C if exist  .sc.project   C:\WINDOWS\system32\cmd.exe /C rd /S /Q .sc.project
-[embARC] Completed in: (1.96500015259)s
-```
+make: Entering directory 'C:/Users/jingru/Documents/conda/helloworld'
+"Creating Directory    : " C:/Users/jingru/Documents/conda/build-out/obj_emsk_23/gnu_arcem9d/application/.
+"Creating Directory    : " C:/Users/jingru/Documents/conda/build-out/obj_emsk_23/gnu_arcem9d/arc
+...
+"Linking               : " C:/Users/jingru/Documents/conda/build-out/obj_emsk_23/gnu_arcem9d/helloworld_gnu_arcem9d.elf
+make: Leaving directory 'C:/Users/jingru/Documents/conda/helloworld'
 
-<span class="tips">**Tip:** embARC defines different build targets for selected configuration. A detailed command-specific help is available by using `make --help`. You can specify a target : 
-1. `embarc build --target xxx`.
-2. `embarc build [other paramters] xxx`, embARC CLI will choose the last parameter as target.
+INFO    - command completed in: (30.422908544540405)s
+INFO    - rom total: 27220       ram total: 12296
+```
 
 #### Export Eclipse IDE file
 If you need to debug your code, you can export your source tree to IDE project file to use the IDE's debugging facilities. embARC CLI supports exporting to Eclipse using GNU or MetaWare.
 
 For example:
 ```
-$ embarc build  --export
-[embARC] Read embarc_app.json
-[embARC] Current configuration
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_OSP_ROOT                             |
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| helloworld | iotdk | 10     | arcem9d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
-+------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-[embARC] Start to generate IDE project
-[embARC] Run command [make opt]
-[embARC] Get inculdes and defines
-[embARC] Start to generate IDE project accroding to templates (.project.tmpl and .cproject.tmpl)
-[embARC] Finish generate IDE project and the files are in C:\Users\jingru\Documents\embarc\testcli\helloworld
-[embARC] Open ARC GNU IDE (version) Eclipse - >File >Open Projects from File System >Paste
-C:\Users\jingru\Documents\embarc\testcli\helloworld
+$ embarc build  -d helloworld --export
+INFO    - setting up build configurations ...
+INFO    - application: C:\Users\jingru\Documents\conda\helloworld
+INFO    - get cached config from helloworld\build.json
+INFO    - embARC root: C:/Users/jingru/Documents/git/github/embarc_osp
+INFO    - platform: <emsk version 23 core arcem9d on arc>
+INFO    - toolchain: gnu
+INFO    - generating esclipse project description file ...
+INFO    - generating esclipse cdt into .cproject file ...
+INFO    - generating esclipse launch configuration file ...
+INFO    - open Eclipse - >File >Open Projects from File System >Paste
+C:/Users/jingru/Documents/conda/build-out
 ```
 - Open **ARC GNU IDE 2018.09 Eclipse**, click **File -> Open Projects from File System** .
-- Paste `C:\Users\jingru\Documents\embarc\testcli\helloworld` to **Import source**, and click **Finish**.You can your project in **Project Explorer** view.
+- Paste `C:/Users/jingru/Documents/conda/build-out` to **Import source**, and click **Finish**.You can your project in **Project Explorer** view.
 
   <img width="500" src="doc/static/img/import.PNG"/>
 
@@ -328,28 +182,17 @@ The embARC CLI provides a flexible mechanism for configuring the embARC program.
 #### Global configuration
 Currently supported options: `osp`, `toolchain`, `build_cfg`. A detailed command-specific help is available by using `embarc config --help`.
 
-You can use `embarc config osp` to config the `EMBARC_OSP_ROOT`.
+You can use `embarc config osp` to config the `EMBARC_ROOT`.
 The commands for `embarc config osp` are:
 
-- `embarc config osp --add <name> <url/path> [<dest>]` to add `EMBARC_OSP_ROOT` to a global file `osp.json`. This file is save in current user folder. Parameter `<url/path>` can be: HTTPS URL, local path or zip file path.
-- `embarc config osp --rename <oldname> <newname>` to rename a `EMBARC_OSP_ROOT`.
+- `embarc config osp --add <name> -m <url> --mr <rev> [<dest>]` to clone osp repository from remote url.
+- `<name> --local [<dest>]` to add local existing osp directory.
+- `embarc config osp --rename <oldname> <newname>` to rename a `EMBARC_ROOT`.
 - `embarc config osp --remove <name>` to remove the path from `osp.json`.
 - `embarc config osp --list` to show all recorded paths.
-- `embarc config osp --set <name>` to set a path as global `EMBARC_OSP_ROOT`.
-
-Add a `EMBARC_OSP_ROOT` for instance:
-```
-$ embarc config osp --add new_osp https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
-[embARC] Start clone embarc_osp
-[embARC] Finish clone embarc_osp
-[embARC] Add (C:\Users\jingru\Documents\embarc\testcli\embarc_osp) to user profile osp.json
-```
+- `embarc config osp --set <name>` to set a path as global `EMBARC_ROOT`.
 
 
-This command will clone the embARC Source code from github, if the folder `new_osp` does't exist in current path. You can specify another path to clone the source code by:
-```
-$ embarc config osp --add new_osp https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git another_path
-```
 All paths is to look for `Users/xxx/.embarc_cli/osp.json`.
 ```
 osp.json
@@ -371,125 +214,61 @@ osp.json
     }
 }
 ```
-To see all recorded `EMBARC_OSP_ROOT`, run:
+To see all recorded `EMBARC_ROOT`, run:
 ```
 $ embarc config osp --list
-  embarc_osp
-    directory: C:/Users/jingru/Documents/embarc/embarc_osp
-    source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
-    type: git
+INFO    - current recored embARC source code
 
-  embarc
-    directory: C:/Users/jingru/Documents/embarc/testcli/helloworld/embarcnew
-    source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
-    type: git
+embarc_osp
+ C:/Users/jingru/Documents/embarc/embarc_osp
 
-  new_osp
-    directory: C:/Users/jingru/Documents/embarc/testcli/new_osp
-    source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
-    type: git
-```
-To rename a `EMBARC_OSP_ROOT`, run:
-```
-$ embarc config osp --rename embarc rename
-[embARC] Start rename embarc to rename
-  rename
-    directory: C:/Users/jingru/Documents/embarc/testcli/helloworld/embarcnew
-    source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
-    type: git
+embarc
+ C:/Users/jingru/Documents/embarc/testcli/helloworld/embarcnew
 
-  embarc_osp
-    directory: C:/Users/jingru/Documents/embarc/embarc_osp
-    source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
-    type: git
-
-  new_osp
-    directory: C:/Users/jingru/Documents/embarc/testcli/new_osp
-    source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
-    type: git
-```
-To remove a `EMBARC_OSP_ROOT`, run:
-```
-$ embarc config osp --remove rename
-[embARC] Start remove rename
-  embarc_osp
-    directory: C:/Users/jingru/Documents/embarc/embarc_osp
-    source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
-    type: git
-
-  new_osp
-    directory: C:/Users/jingru/Documents/embarc/testcli/new_osp
-    source: https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git
-    type: git
+new_osp
+ C:/Users/jingru/Documents/embarc/testcli/new_osp
 ```
 
 You can use `embarc config toolchain` to config `TOOLCHAIN`. Currently supported toolchains are GNU and MetaWare.
 
-You can check the current toolchain in your platform.
+You can check the current toolchains in your platform.
 ```
-$ embarc config toolchain gnu
-[embARC] Current GNU verion: 2019.03
+$ embarc config toolchain --version
+INFO    - current GNU version: 2019.03
+INFO    - current Metaware version: 2020.12
 ```
- If you haven't installed the GNU yet, it will remind you to download it, using `--version` to specify the version number. embARC CLI doesn't support for downloading MetaWare.
+If you haven't installed the GNU yet, you can download it by using `embarc config toolchain --download <version>`. embARC CLI doesn't support for downloading MetaWare.
 
 To set global build configuration, use `embarc config build_cfg`:
 ```
 $ embarc config build_cfg BOARD emsk
-[embARC] Set BOARD = emsk as global setting
+INFO    - Set BOARD = emsk as global setting
 
 $ embarc config build_cfg BD_VER 23
-[embARC] Set BD_VER = 23 as global setting
+INFO    - Set BD_VER = 23 as global setting
 
 $ embarc config build_cfg CUR_CORE arcem7d
-[embARC] Set CUR_CORE = arcem7d as global setting
+INFO    - Set CUR_CORE = arcem7d as global setting
 ```
 #### Local configuration (per program)
 You can use `embarc appconfig` to set the program build configuration.
 The arguments for `build` are:
 
-- `-a` or `--application` to specify the path of the application.
+- `-d` or `--directory` to specify the path of the application.
 - `-b` or `--board` to select a board.
 - `--bd-ver` to select a board_ver.
-- `--cur_core` to select a core.
+- `--core` to select a core.
 - `-t` or `--toolchain` to select toolchain. The value can be `gnu`(GNU) or `mw`(MetaWare).
-- `-j` or `--parallel` to compile code in parallel.
-- `--target` to select the build target, the default target is `all`, you can selsect one from `[elf, bin, hex, size, all]`.
-- `--osp_root` to select a path as `EMBARC_OSP_ROOT`.
-- `--olevel` to specify the `OLEVEL`.
+- `--embarc-root` to select a path as `EMBARC_ROOT`.
+- `--config` to specify application configuration, default is to look for build.json.
 
 To see current application configuration, run:
 ```
-$ embarc appconfig
-[embARC] Read makefile and get configuration
-[embARC] Read embarc_config.json
-[embARC] Current configuraion
-+-----------------+---------------------------------------------+
-| option          | value                                       |
-+-----------------+---------------------------------------------+
-| APPL            | helloworld                                  |
-| BOARD           | iotdk                                       |
-| BD_VER          | 10                                          |
-| CUR_CORE        | arcem9d                                     |
-| TOOLCHAIN       | gnu                                         |
-| EMBARC_OSP_ROOT | C:/Users/jingru/Documents/embarc/embarc_osp |
-| OLEVEL          | O3                                          |
-+-----------------+---------------------------------------------+
-```
-To change current application configuration. For example, update configuration to `BOARD=emsk BD_VER=11 CUR_CORE=arcem4`, run:
-```
-$ embarc appconfig --board emsk --bd-ver 11 --cur_core arcem4
-[embARC] Read makefile and get configuration
-[embARC] Read embarc_config.json
-[embARC] Current configuraion
-+-----------------+---------------------------------------------+
-| option          | value                                       |
-+-----------------+---------------------------------------------+
-| APPL            | helloworld                                  |
-| BOARD           | emsk                                        |
-| BD_VER          | 11                                          |
-| CUR_CORE        | arcem4                                      |
-| TOOLCHAIN       | gnu                                         |
-| EMBARC_OSP_ROOT | C:/Users/jingru/Documents/embarc/embarc_osp |
-| OLEVEL          | O3                                          |
-+-----------------+---------------------------------------------+
+$ embarc appconfig -d helloworld
+INFO    - setting up build configurations ...
+INFO    - application: C:/Users/jingru/Documents/conda/helloworld
+INFO    - get cached config from helloworld/build.json
+INFO    - embARC root: C:/Users/jingru/Documents/git/github/embarc_osp
+INFO    - platform: <emsk version 23 core arcem9d on arc>
+INFO    - toolchain: gnu
 ```

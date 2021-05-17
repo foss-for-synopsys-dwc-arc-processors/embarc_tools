@@ -169,9 +169,9 @@ class OSP(object):
     def list(self):
         cur_osp = read_json(self.osp_cfg)
         if cur_osp:
-            logging.info("current recored embarc-root")
             for name, info in cur_osp.items():
-                logging.info("{:<5} {:<50}".format(name, info["directory"]))
+                sys.stdout.write("\n{:<5}\n {:<50}\n".format(name, info["directory"]))
+                sys.stdout.flush()
             return cur_osp
 
     def set_global(self, name):

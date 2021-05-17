@@ -5,9 +5,9 @@ from ..embarc_subcommands import config_subcommands
 
 SUBCOMMANDS = import_submodules(config_subcommands, recursive=False)
 
-help = "Get, set or unset configuration options."
+help = "get, set or unset configuration options."
 
-description = ("Currently supported options: osp, toolchain, build_cfg")
+description = ("currently supported options: osp, toolchain, build_cfg")
 
 
 def run(args, remainder=None):
@@ -17,7 +17,7 @@ def run(args, remainder=None):
 def setup(subparsers):
     subparser = subparsers.add_parser('config', help=help, description=description)
     subparser.usage = ("\n    embarc config osp --add <name> -m <url> --mr <rev> [<dest>]\n"
-                       "    embarc config osp --add <name> --local [<dest>]\n"
+                       "    embarc config osp --add <name> --local <dest> \n"
                        "    embarc config osp --rename <oldname> <newname>\n"
                        "    embarc config osp --remove <name>\n"
                        "    embarc config osp --list\n"
