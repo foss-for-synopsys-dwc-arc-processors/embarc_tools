@@ -112,6 +112,7 @@ class OSP(object):
         if Path(dest).exists():
             logging.error("refusing to clone into existing location %s" % dest)
             sys.exit(1)
+        dest = os.path.abspath(dest).replace("\\", "/")
         cur_osp = read_json(self.osp_cfg)
         if cur_osp.get(name, None):
             logging.error("%s already exists in %s" % (name, self.osp_cfg))
