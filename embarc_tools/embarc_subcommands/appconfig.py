@@ -12,7 +12,7 @@ description = ("Show detail config.\n"
 
 def run(args, remainder=None):
     if remainder:
-        print("[embARC] embarc appconfig: error: invalid parameter %s" % remainder[0])
+        print("ERROR    - invalid parameter %s" % remainder[0])
         sys.exit(1)
     cached_config = args.config
     if not cached_config:
