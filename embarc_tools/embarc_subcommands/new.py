@@ -46,12 +46,12 @@ def find_platform(args, appl_dir, config):
         for file in glob.glob(os.path.join(config["EMBARC_ROOT"], "board", "*", "*.mk")):
             bd, _ = os.path.splitext(os.path.basename(file))
             boards.append(bd)
-    while True:
-        logging.info("please choose board from {}" .format(" ".join(boards)))
-        board = get_input("choose board: ")
-        if board not in boards:
-            continue
-        break
+        while True:
+            logging.info("please choose board from {}" .format(" ".join(boards)))
+            board = get_input("choose board: ")
+            if board not in boards:
+                continue
+            break
     plat = platform.Platform(board, args.bd_ver, args.core)
     config["BOARD"] = plat.name
     exporter = Exporter("application")

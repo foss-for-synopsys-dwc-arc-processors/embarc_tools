@@ -113,7 +113,7 @@ class embARC_Builder(object):
             os.makedirs(self.build_dir, exist_ok=False)
         self.check_source_dir()
         logging.info("application: {}".format(self.source_dir.replace("\\", "/")))
-        if os.path.exists(self.embarc_config):
+        if self.embarc_config and os.path.exists(self.embarc_config):
             logging.info("get cached config from {}".format(self.embarc_config))
             self.cache_configs = read_json(self.embarc_config)
         if self.cache_configs.get("EMBARC_ROOT", None):
@@ -381,7 +381,8 @@ class EclipseARC(object):
             sys.exit(1)
         debug_cfg["openocd_bin"] = os.path.join(os.path.dirname(gnu_executable),
                                                 "openocd.exe").replace("\\", "/")
-        debug_cfg["openocd_cfg"] = self.openocd_cfg.replace("\\", "/")
+        if self.builder.platform.name != "nsim":
+            debug_cfg["openocd_cfg"] = self.openocd_cfg.replace("\\", "/")
         return debug_cfg
 
     def generate(self):
