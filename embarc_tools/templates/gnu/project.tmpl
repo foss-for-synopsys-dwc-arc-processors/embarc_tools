@@ -25,12 +25,24 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
 	<linkedResources>
-		{% if source_dir %}
+		{% if sources %}
 		<link>
 			<name>application</name>
 			<type>2</type>
-			<location>{{source_dir}}</location>
+			<locationURI>virtual:/virtual</locationURI>
 		</link>
+		{% for group_name,files in sources.items() %}
+		<link>
+			<name>{{group_name}}</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link> {% for file in files %}
+		<link>
+			<name>{{group_name}}/{{file.name}}</name>
+			<type>1</type>
+			<location>{{file.dir}}/{{file.name}}</location>
+		</link>
+		{% endfor %}{% endfor %}
 		{% endif %}
 		<link>
 			<name>embARC</name>

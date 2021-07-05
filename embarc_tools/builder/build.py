@@ -112,8 +112,8 @@ class embARC_Builder(object):
         else:
             os.makedirs(self.build_dir, exist_ok=False)
         self.check_source_dir()
-        logging.info("application: {}".format(self.source_dir))
-        if os.path.exists(self.embarc_config):
+        logging.info("application: {}".format(self.source_dir.replace("\\", "/")))
+        if self.embarc_config and os.path.exists(self.embarc_config):
             logging.info("get cached config from {}".format(self.embarc_config))
             self.cache_configs = read_json(self.embarc_config)
         if self.cache_configs.get("EMBARC_ROOT", None):
@@ -381,7 +381,8 @@ class EclipseARC(object):
             sys.exit(1)
         debug_cfg["openocd_bin"] = os.path.join(os.path.dirname(gnu_executable),
                                                 "openocd.exe").replace("\\", "/")
-        debug_cfg["openocd_cfg"] = self.openocd_cfg.replace("\\", "/")
+        if self.builder.platform.name != "nsim":
+            debug_cfg["openocd_cfg"] = self.openocd_cfg.replace("\\", "/")
         return debug_cfg
 
     def generate(self):
@@ -390,16 +391,27 @@ class EclipseARC(object):
         project_cfg["links"] = dict()
         project_cfg["name"] = self.builder.name
         embarc_root = self.builder.embarc_root.replace("\\", "/")
+        build_dir = self.builder.build_dir.replace("\\", "/")
+        source_dir = self.builder.source_dir.replace("\\", "/")
         project_cfg["embarc_root"] = embarc_root
-        if self.builder.source_dir != self.builder.build_dir:
-            project_cfg["source_dir"] = self.builder.source_dir.replace("\\", "/")
+
+        project_cfg["sources"] = dict()
+        for root, _, files in os.walk(source_dir, topdown=False):
+            root = root.replace("\\", "/")
+            if not root.startswith(build_dir):
+                virtual_dir = root.replace(source_dir, "application")
+                project_cfg["sources"][virtual_dir] = list()
+                for f in files:
+                    project_cfg["sources"][virtual_dir].append(
+                        {"name": f, "dir": root}
+                    )
+
         cproject_cfg_include = set()
 
         for include in self.includes:
             if include == embarc_root:
                 continue
             if "embARC_generated" in include:
-                build_dir = self.builder.build_dir.replace("\\", "/")
                 virtual_dir = include.replace(build_dir, "")
                 cproject_cfg_include.add(virtual_dir)
                 continue
@@ -420,29 +432,30 @@ class EclipseARC(object):
                                 {"name": file,
                                  "dir": include.replace(embarc_root, "OSP_ROOT")}
                             )
+
         exporter = Exporter(self.builder.toolchain)
-        logging.info("""Start to generate IDE project accroding to
-                        templates (.project.tmpl and .cproject.tmpl)""")
+        logging.info("generating esclipse project description file ...")
         exporter.gen_file_jinja(
-            "project.tmpl", project_cfg, ".project", self.builder.build_dir
+            "project.tmpl", project_cfg, ".project", build_dir
         )
 
         cproject_cfg = self.get_cproject_cfg()
         cproject_cfg["includes"] = list(cproject_cfg_include)
+        logging.info("generating esclipse cdt into .cproject file ...")
         exporter.gen_file_jinja(
-            ".cproject.tmpl", cproject_cfg, ".cproject", self.builder.build_dir
+            ".cproject.tmpl", cproject_cfg, ".cproject", build_dir
         )
 
         debug_cfg = self.get_debug_cfg()
         debug_cfg["core"] = cproject_cfg["core"]
         debug_cfg["board"] = self.builder.platform.name
         debug_cfg["bd_ver"] = self.builder.platform.version
+        logging.info("generating esclipse launch configuration file ...")
         exporter.gen_file_jinja(
-            ".launch.tmpl", debug_cfg, "%s-%s.launch" % (debug_cfg["name"], self.builder.platform.core), self.builder.build_dir
+            ".launch.tmpl", debug_cfg, "%s-%s.launch" % (debug_cfg["name"], self.builder.platform.core), build_dir
         )
         logging.info(
-            "Open ARC GNU IDE (version) Eclipse \
-            - >File >Open Projects from File System >Paste\n{}".format(
-                self.builder.build_dir
+            "open Eclipse - >File >Open Projects from File System >Paste\n{}".format(
+                build_dir
             )
         )

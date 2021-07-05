@@ -41,19 +41,17 @@ def get_osp_root(input_root=None):
 def find_platform(args, appl_dir, config):
     global_build_cfg = read_json(osppath.global_cfg_file)["BUILD_CONFIG"]
     board = args.board or global_build_cfg["BOARD"]
+    boards = list()
     if not board:
         for file in glob.glob(os.path.join(config["EMBARC_ROOT"], "board", "*", "*.mk")):
-            try:
-                boards = os.path.splitext(os.path.basename(file))
-                while True:
-                    logging.info("please choose board from {}" .format(boards))
-                    board = get_input("choose board: ")
-                    if board not in boards:
-                        continue
-                    break
-                break
-            except RuntimeError as e:
-                logging.error("E: failed to find a board. %s" % e)
+            bd, _ = os.path.splitext(os.path.basename(file))
+            boards.append(bd)
+        while True:
+            logging.info("please choose board from {}" .format(" ".join(boards)))
+            board = get_input("choose board: ")
+            if board not in boards:
+                continue
+            break
     plat = platform.Platform(board, args.bd_ver, args.core)
     config["BOARD"] = plat.name
     exporter = Exporter("application")
@@ -90,20 +88,20 @@ def run(args, remainder=None):
 
     config["APPL"] = os.path.basename(appl_dir)
     logging.info("application: {} in {}".format(config["APPL"], appl_dir))
-    config["APPL_CSRC_DIR"] = "."
-    config["APPL_ASMSRC_DIR"] = "."
-    config["APPL_INC_DIR"] = "."
 
     config["EMBARC_ROOT"] = get_osp_root(args.embarc_root)
     logging.info("embarc_root: {}".format(config["EMBARC_ROOT"]))
 
     logging.info("toolchain: {}".format(args.toolchain))
     config["TOOLCHAIN"] = args.toolchain
-
     config = find_platform(args, appl_dir, config)
 
     generate_json(config, os.path.join(appl_dir, "build.json"))
-    logging.info("cache build config into %s" % os.path.join(appl_dir, "build.json"))
+    logging.info("cache build config into %s" % os.path.join(appl_dir, "build.json").replace("\\", "/"))
+    config["APPL_CSRC_DIR"] = "."
+    config["APPL_ASMSRC_DIR"] = "."
+    config["APPL_INC_DIR"] = "."
+
     if args.build_opt:
         logging.info("parse extra build options")
         for opt in args.build_opt:
@@ -133,9 +131,10 @@ def setup(subparsers):
         "--toolchain", choices=["mw", "gnu"], default="gnu", help="choose toolchain", metavar='')
     subparser.add_argument(
         "--embarc-root", help="set embARC OSP root path", metavar='')
-    subparser.add_argument('-o', '--build-opt', default=[], action='append',
-                           help='''options to pass to the build tool make
-                           may be given more than once''')
+    subparser.add_argument('-o', '--build-opt', default=[], action='append', metavar='',
+                           help="""options to pass to the make command,
+                           may be given more than once.
+                           Example: OLEVEL=O2""")
     subparser.add_argument(
         "-d", "--directory", help="specify the root of the application", metavar='')
     subparser.set_defaults(func=run)

@@ -44,10 +44,10 @@ def run(args, remainder=None):
 def setup(subparsers):
     subparser = subparsers.add_parser('build', help=help, description=description)
     subparser.add_argument(
-        "-d", "--directory", default=getcwd(), help="application path", metavar='')
+        "-d", "--directory", default=getcwd(), help="application source directory", metavar='')
     subparser.add_argument(
         "-O", "--outdir", default=os.path.join(os.getcwd(), "build-out"),
-        help="Output directory for logs and binaries. ", metavar='')
+        help="output directory for logs and binaries", metavar='')
     subparser.add_argument(
         "-b", "--board", help="choose board", metavar='')
     subparser.add_argument(
@@ -60,10 +60,12 @@ def setup(subparsers):
         "--target", default="all",
         help="choose build target, default target is all", metavar='')
     subparser.add_argument(
-        "-g", "--export", action="store_true", help="generate IDE project files for your application")
+        "-g", "--export", action="store_true",
+        help="generate eclipse project files, skip to build application")
     subparser.add_argument(
-        "--config", help="Specify application configuration, default is to look for build.json", metavar='')
-    subparser.add_argument('-o', '--build-opt', default=[], action='append',
-                           help='''options to pass to the build tool make
-                           may be given more than once''')
+        "--config", help="specify application configuration, default is to look for build.json", metavar='')
+    subparser.add_argument('-o', '--build-opt', default=[], action='append', metavar='',
+                           help="""options to pass to the make command,
+                           may be given more than once.
+                           Example: OLEVEL=O2""")
     subparser.set_defaults(func=run)

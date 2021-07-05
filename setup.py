@@ -42,7 +42,8 @@ setup(
         'beautifulsoup4',
         'GitPython',
         'pyelftools',
-        'psutil'
+        'psutil',
+        'pexpect'
     ],
 
     include_package_data = True,

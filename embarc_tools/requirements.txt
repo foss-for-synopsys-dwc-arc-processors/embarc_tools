@@ -3,3 +3,4 @@ colorama
 PrettyTable
 Jinja
 psutil
+pexpect

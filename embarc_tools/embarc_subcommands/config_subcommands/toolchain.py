@@ -7,7 +7,10 @@ from ...toolchain import gnu, metaware
 from ...utils import read_json, generate_json
 
 
-help = "Get, set toolchain configuration options."
+help = "get, set toolchain configuration options."
+usage = ("\n    embarc config toolchain --version\n"
+         "    embarc config toolchain --download <version>\n"
+         "    embarc config toolchain --set <gnu/mw>")
 
 
 def run(args, remainder=None):
@@ -44,11 +47,12 @@ def run(args, remainder=None):
 
 def setup(subparsers):
     subparser = subparsers.add_parser('toolchain', help=help)
+    subparser.usage = usage
     mutualex_group = subparser.add_mutually_exclusive_group()
     mutualex_group.add_argument(
-        "--version", action='store_true', help="Show the version of supporte toolchains")
+        "--version", action='store_true', help="show the version of supported toolchains")
     mutualex_group.add_argument(
-        "--download", help="Downlad the specify version of toolchain only support gnu.")
+        "--download", metavar='', help="downlad the specify version of toolchain, only support gnu")
     mutualex_group.add_argument(
-        "--set", help="Set a toolchain as global setting.")
+        "--set", metavar='', help="set a toolchain as global setting")
     subparser.set_defaults(func=run)

@@ -12,7 +12,7 @@ description = ("Show detail config.\n"
 
 def run(args, remainder=None):
     if remainder:
-        print("[embARC] embarc appconfig: error: invalid parameter %s" % remainder[0])
+        print("ERROR    - invalid parameter %s" % remainder[0])
         sys.exit(1)
     cached_config = args.config
     if not cached_config:
@@ -38,7 +38,7 @@ def setup(subparsers):
         "-d", "--directory", default=getcwd(), help="application path", metavar='')
     subparser.add_argument(
         "-O", "--outdir", default=os.path.join(os.getcwd(), "build-out"),
-        help="Output directory for logs and binaries. ", metavar='')
+        help="output directory for logs and binaries. ", metavar='')
     subparser.add_argument(
         "-b", "--board", help="set board", metavar='')
     subparser.add_argument(
@@ -50,5 +50,5 @@ def setup(subparsers):
     subparser.add_argument(
         "--embarc-root", help="set embARC OSP root path", metavar='')
     subparser.add_argument(
-        "--config", help="Specify application configuration, default is to look for build.json", metavar='')
+        "--config", help="specify application configuration, default is to look for build.json", metavar='')
     subparser.set_defaults(func=run)

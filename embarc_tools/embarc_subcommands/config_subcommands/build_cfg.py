@@ -5,7 +5,7 @@ from ...osp import osp
 from ...utils import read_json, generate_json
 
 
-help = "Set global build configuration."
+help = "set global build configuration."
 usage = ("\n    embarc config build_cfg BOARD <value>\n"
          "    embarc config build_cfg BD_VER <value>\n"
          "    embarc config build_cfg CUR_CORE <value>\n")
