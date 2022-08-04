@@ -1,10 +1,8 @@
 import os
 import re
-import sys
 import pathlib
 import subprocess
 import xml.etree.ElementTree as ET
-import logging
 
 
 class Platform:
@@ -34,7 +32,6 @@ class Platform:
         self.supported_cores = list()
 
         self.configs = dict()
-
 
     def _get_peripherals(self, onchip_ip_list):
         ip_list = onchip_ip_list.split()
@@ -85,14 +82,13 @@ class Platform:
                     mname = None
         self.configs.update(mk_vars)
 
-
     def get_configs(self, example, embarc_root):
         cmd = ["make", "EMBARC_ROOT=%s" % embarc_root]
         if self.name is not None:
             cmd.append("BOARD=%s" % (self.name))
         cmd.extend(["-C", example, "-pn"])
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT) 
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as ex:
             output = ex.output
         self._extract_mk_vars(output)
@@ -107,7 +103,7 @@ class Platform:
         with open(tcf, "rb") as f:
             tree = ET.ElementTree(ET.fromstring(f.read().decode("utf-8")))
             eleTestsuites = tree.getroot()
-            core_tag = eleTestsuites.findall(f'configuration/[@filename="core.props"]')
+            core_tag = eleTestsuites.findall('configuration/[@filename="core.props"]')
             if core_tag:
                 core_text = core_tag[0].find("string").text
                 core_props = core_text.splitlines()
@@ -115,14 +111,14 @@ class Platform:
                     if not line:
                         continue
                     key, value = line.strip('\t').split("=", maxsplit=1)
-                    configs[key[12:]] = value # key start with core_configs.
+                    configs[key[12:]] = value
                     if key[12:] in self.platform_tags.keys():
                         if key[12:] == "bcr.cluster_build.num_cores":
                             if int(value) > 1:
                                 tags.append("smp")
                             continue
                         tags.append(self.platform_tags[key[12:]])
-        if not version in self.configs:
+        if version not in self.configs:
             self.configs[version] = dict()
         self.configs[version][core] = {
             "configs": configs,
@@ -130,14 +126,13 @@ class Platform:
         }
 
     def get_cores(self, example, version, embarc_root):
-        cores = list()
         cmd = ["make", "EMBARC_ROOT=%s" % embarc_root]
         cmd.append("BOARD=%s" % (self.name))
         cmd.append("BD_VER=%s" % (version))
         cmd.extend(["-C", example])
         cmd.append("-pn")
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT) 
+            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as ex:
             output = ex.output
         self._extract_mk_vars(output)
