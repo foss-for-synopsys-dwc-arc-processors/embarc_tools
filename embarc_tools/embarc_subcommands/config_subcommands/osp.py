@@ -22,7 +22,7 @@ def run(args, remainder=None):
             logging.error("--local cannot be combined with -m or --mr")
             sys.exit(1)
         if args.local:
-            osppath.local(args.name, args.local)
+            osppath.local(args.add, args.local)
         if args.manifest_url:
             rev = args.manifest_rev or "master"
             dest = args.directory or os.path.join(os.getcwd(), "embarc_osp")
@@ -34,20 +34,20 @@ def run(args, remainder=None):
         else:
             old = args.directory
             new = remainder[0]
-            logging.info("rename {} to {}".format(old, new))
+            logging.info(f"rename {old} to {new}")
             osppath.rename(old, new)
             args.list = True
     elif args.remove:
         name = args.remove
-        logging.info("remove {} ".format(name))
+        logging.info(f"remove {name} ")
         osppath.remove(name)
         args.list = True
     elif args.set:
-        logging.info("set %s as global EMBARC_ROOT" % args.set)
+        logging.info(f"set {args.set} as global EMBARC_ROOT")
         osppath.set_global(args.set)
     else:
         if remainder:
-            logging.error("usage: " + usage)
+            logging.error(f"usage: {usage}")
             sys.exit(1)
 
     if args.list:

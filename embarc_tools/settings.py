@@ -4,7 +4,7 @@ import sys
 import os
 
 EMBARC_OSP_URL = "https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_osp.git"
-OSP_DIRS = ["arc", "board", "device", "inc", "library", "middleware"]
+OSP_DIRS = ["arc", "board", "device", "include", "library", "middleware"]
 OLEVEL = ["Os", "O0", "O1", "O2", "O3"]
 GNU_PATH = ""
 MW_PATH = ""
