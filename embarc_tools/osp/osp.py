@@ -101,7 +101,7 @@ class OSP(object):
                 logging.error("%s already exists in %s" % (name, self.osp_cfg))
                 sys.exit(1)
             else:
-                cur_osp[name] = {"type": "local", "directory": local_dir}
+                cur_osp[name] = {"type": "local", "directory": str(local_dir)}
                 generate_json(cur_osp, self.osp_cfg)
 
         else:

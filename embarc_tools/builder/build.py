@@ -11,7 +11,7 @@ import threading
 import subprocess
 from elftools.elf.elffile import ELFFile
 from distutils.spawn import find_executable
-from ..settings import MAKEFILENAMES, is_embarc_makefile, is_embarc_base
+from ..settings import MAKEFILENAMES, is_embarc_makefile, is_embarc_base, BUILD_CONFIG_TEMPLATE
 from ..utils import delete_dir_files, generate_json, read_json
 from ..osp import platform
 from ..builder import secureshield
@@ -39,7 +39,7 @@ class embARC_Builder(object):
 
         self.extra_build_opt = buildopts
 
-        self.cache_configs = dict()
+        self.cache_configs = BUILD_CONFIG_TEMPLATE
 
         self.embarc_config = embarc_config
         self.log = "build.log"
@@ -48,30 +48,25 @@ class embARC_Builder(object):
         self.status = "na"
 
     def find_platform(self):
+        if not self.embarc_root:
+            logging.error("unable to determine a supported board")
+            sys.exit(1)
+        self.platform.get_configs(self.source_dir, self.embarc_root)
         if not self.platform.name:
-            if self.cache_configs.get("BOARD", None):
-                self.platform.name = self.cache_configs["BOARD"]
-        if not self.platform.name:
-            if not self.embarc_root:
-                logging.error("unable to determine a supported board")
-                sys.exit(1)
-            else:
-                for file in glob.glob(os.path.join(self.embarc_root, "board", "*", "*.mk")):
-                    try:
-                        self.platform.name = os.path.splitext(os.path.basename(file))[0]
-                        break
-                    except RuntimeError as e:
-                        logging.error("E: failed to find a board. %s" % e)
+            for file in glob.glob(os.path.join(self.embarc_root, "board", "*", "*.mk")):
+                try:
+                    self.platform.name = os.path.splitext(os.path.basename(file))[0]
+                    break
+                except RuntimeError as e:
+                    logging.error("E: failed to find a board. %s" % e)
+        self.platform.get_configs(self.source_dir, self.embarc_root)
         if not self.platform.version:
             if self.cache_configs.get("BD_VER", None):
                 self.platform.version = self.cache_configs["BD_VER"]
-        if not self.platform.version:
-            self.platform.version = self.platform.get_versions(self.source_dir, self.embarc_root)[0]
-        if not self.platform.core:
-            if self.cache_configs.get("CUR_CORE", None):
-                self.platform.core = self.cache_configs["CUR_CORE"]
-        if not self.platform.core:
-            self.platform.core = self.platform.get_cores(self.platform.version, self.source_dir, self.embarc_root)[0]
+            else:
+                self.platform.version = self.platform.supported_versions[0]
+
+        self.platform.core = self.platform.get_cores(self.source_dir, self.platform.version, self.embarc_root)[0]
         logging.info("platform: {}".format(self.platform))
         self.cache_configs["BOARD"] = self.platform.name
         self.cache_configs["BD_VER"] = self.platform.version
@@ -122,7 +117,7 @@ class embARC_Builder(object):
                 logging.info("embARC root: {}".format(self.embarc_root))
         self.cache_configs["EMBARC_ROOT"] = self.embarc_root
         self.find_platform()
-        self.toolchain = self.toolchain or self.cache_configs.get("TOOLCHAIN", None)
+        self.toolchain = self.toolchain or self.platform.configs["'override'"].get("TOOLCHAIN", None)
         if not self.toolchain:
             logging.error("unable to determine build toolchain")
             sys.exit(1)
@@ -229,6 +224,7 @@ class embARC_Builder(object):
             "-C", self.source_dir,
             "OUT_DIR_ROOT=%s" % (self.build_dir)
         ]
+        print(make_opts)
         if self.extra_build_opt:
             make_opts.extend(self.extra_build_opt)
         self.target = target

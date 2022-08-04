@@ -89,7 +89,7 @@ def download_file(url, path):
         from urllib import request
         request.urlretrieve(url, path)
     except Exception as e:
-        print("[embARC] This file from %s can't be download for %s" % (url, e))
+        print(f"[embARC] This file from {url} can't be download for {e}")
         sys.stdout.flush()
         return False
     return True
@@ -136,7 +136,7 @@ def extract_file(file, path):
     elif filesuffix == ".zip":
         extract_file_name = unzip(file, path)
     else:
-        print("[embARC] This file {} can't be extracted".format(file))
+        print(f"[embARC] This file {file} can't be extracted")
     if extract_file_name is not None:
         extract_file_path = os.path.join(path, extract_file_name)
     return extract_file_path

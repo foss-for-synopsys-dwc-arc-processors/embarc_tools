@@ -87,6 +87,7 @@ def common_check(toolchain, board, app_path):
         if item['board'] == board:
             board_config = item
     if board_config is None:
+        logging.error(f"{board} is not supported")
         return False
     elif check_config(board_config) is False:
         logging.error("please check the application config")
